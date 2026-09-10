@@ -399,7 +399,9 @@
   display: flex; justify-content: center; align-items: flex-start; padding: 12px;
 }
 .case-designer-admin .cd-imgwrap { position: relative; flex-shrink: 0; box-shadow: 0 14px 32px -14px rgba(34, 29, 21, .4); border-radius: 14px; overflow: hidden; }
-.case-designer-admin .cd-imgwrap img { display: block; }
+/* عرض/ارتفاع ۱۰۰٪ لازم است: فیت‌کردن در JS فقط ابعاد «ظرف» را ست می‌کند و
+   بدون این خط، تصویر در اندازهٔ طبیعی‌اش رندر شده و فقط گوشهٔ بالا-چپ دیده می‌شود. */
+.case-designer-admin .cd-imgwrap img { display: block; width: 100%; height: 100%; }
 .case-designer-admin .cd-draw .cd-empty { width: 100%; }
 .case-designer-admin .cd-draw-err {
   display: flex; flex-direction: column; align-items: center; gap: 6px;

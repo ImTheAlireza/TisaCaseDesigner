@@ -568,6 +568,9 @@
         const w = Math.round(img.naturalWidth * s), h = Math.round(img.naturalHeight * s);
         wrap.style.width = w + 'px';
         wrap.style.height = h + 'px';
+        // خودِ <img> هم صریحاً فیت می‌شود تا رندر به CSS موروثی وابسته نباشد
+        img.style.width = w + 'px';
+        img.style.height = h + 'px';
         // کادر خط‌چین، عکس را «در آغوش» می‌گیرد تا عکس همیشه دقیقاً داخل کادر فیت شود
         area.style.width = Math.min(w + 48, (drawwrap.clientWidth || (w + 48)) - 28) + 'px';
         area.style.height = (h + 48) + 'px';
