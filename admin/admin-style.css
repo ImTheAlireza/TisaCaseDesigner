@@ -1,0 +1,741 @@
+/* ============================================================
+   پنل ادمین وردپرس — زبان طراحی «کاغذ گرم و فیروزه‌ای عمیق»
+   توکن‌ها: کاغذ #f6f4ee | کارت #fff | خط #e7e1d5 | متن #221d15 / #6f6a5e
+   فیروزه‌ای #0e7a6b (تأکید #0b4a41، نرم #e3f2ef) | کهربایی #c2711d | آلویی #7c3f58
+   وضعیت‌ها: ok #177245 / bad #b3261e (فقط برای معنا)
+   آیکن‌ها فقط SVG خطی درون‌خطی — بدون سایدبار، بدون پنل تیره، بدون نمودار میله‌ای
+   ============================================================ */
+
+/* ---------- فونت وزیرمتن (400/500/700/800) ---------- */
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../public/fonts/Vazirmatn-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../public/fonts/Vazirmatn-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../public/fonts/Vazirmatn-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 800; font-display: swap; src: url('../public/fonts/Vazirmatn-Black.woff2') format('woff2'); }
+
+/* ---------- توکن‌ها ---------- */
+/* ============================================================
+   وسط‌چین‌کردن قطعی پنل — مستقل از CSS میزبان (وردپرس/قالب)
+   ============================================================ */
+.cd-center-wrap { display: flex; justify-content: center; width: 100%; }
+.cd-center-wrap .case-designer-admin { width: 100%; flex: 1 1 auto; }
+
+.case-designer-admin {
+  --cd-paper: #f6f4ee;
+  --cd-card: #ffffff;
+  --cd-line: #e7e1d5;
+  --cd-line-soft: #f0ece2;
+  --cd-ink: #221d15;
+  --cd-ink2: #6f6a5e;
+  --cd-ink3: #948d7c;
+  --cd-teal: #0e7a6b;
+  --cd-teal-d: #0b4a41;
+  --cd-teal-l: #14907d;
+  --cd-teal-soft: #e3f2ef;
+  --cd-amber: #c2711d;
+  --cd-plum: #7c3f58;
+  --cd-ok: #177245;
+  --cd-bad: #8a241d;
+  --cd-bad-l: #b3261e;
+  --cd-shadow: 0 10px 30px -14px rgba(34, 29, 21, .12);
+  --cd-shadow-lg: 0 18px 40px -18px rgba(34, 29, 21, .22);
+  --cd-ring: rgba(14, 122, 107, .12);
+
+  direction: rtl;
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  color: var(--cd-ink);
+  font-size: 14px;
+  line-height: 1.9;
+  max-width: 1240px;
+  margin-inline: auto;            /* پنل همیشه وسط صفحه/ستون محتوا */
+  margin-left: auto !important;   /* حتی اگر CSS میزبان margin را صفر کند */
+  margin-right: auto !important;
+  float: none;
+  align-self: center;             /* در دمو (کانتینر فلکس) هم وسط بماند */
+  background: var(--cd-paper);
+  background-image: radial-gradient(900px 340px at 78% -8%, rgba(14, 122, 107, .07), transparent 70%);
+  border-radius: 22px;
+  padding: 18px 20px 26px;
+  box-sizing: border-box;
+}
+.case-designer-admin *, .case-designer-admin *::before, .case-designer-admin *::after { box-sizing: border-box; }
+.case-designer-admin .cd-hidden { display: none !important; }
+.case-designer-admin .cd-grow { flex: 1; }
+.case-designer-admin .cd-sub { color: var(--cd-ink2); font-size: 12px; line-height: 1.9; }
+
+/* ---------- آیکن‌های SVG درون‌خطی ---------- */
+.case-designer-admin .cd-ic { display: inline-block; flex-shrink: 0; vertical-align: -3px; }
+
+/* ============================================================
+   باند هدر تمام‌عرض
+   ============================================================ */
+.case-designer-admin .cd-header {
+  border-radius: 22px;
+  background: linear-gradient(115deg, #0a3f38, #0b4a41 34%, #0e7a6b 78%, #14907d);
+  padding: 22px 24px;
+  color: #fff;
+  box-shadow: 0 18px 40px -18px rgba(11, 74, 65, .55);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.case-designer-admin .cd-logo {
+  width: 52px; height: 52px; flex-shrink: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .16);
+  border: 1px solid rgba(255, 255, 255, .28);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  display: grid; place-items: center;
+}
+.case-designer-admin .cd-logo .cd-ic { width: 26px; height: 26px; color: #fff; }
+.case-designer-admin .cd-header h1 {
+  margin: 0 0 3px; padding: 0; font-size: 20px; font-weight: 800; line-height: 1.5;
+  display: flex; align-items: center; gap: 10px; color: #fff;
+}
+.case-designer-admin .cd-header h1 .cd-ic { width: 22px; height: 22px; opacity: .95; }
+.case-designer-admin .cd-ver {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 999px; padding: 2px 11px;
+  font-size: 11px; font-weight: 700; letter-spacing: .2px;
+}
+.case-designer-admin .cd-tagline { margin: 0; font-size: 12.5px; color: rgba(255, 255, 255, .84); line-height: 1.9; }
+.case-designer-admin .cd-hstats { margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.case-designer-admin .cd-hchip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 999px; padding: 5px 13px;
+  font-size: 11.5px; font-weight: 700; color: #fff;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  white-space: nowrap;
+}
+.case-designer-admin .cd-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.case-designer-admin .cd-dot.ok { background: #8fe3b7; box-shadow: 0 0 10px rgba(143, 227, 183, .95); animation: cdGlow 2.2s ease-in-out infinite; }
+.case-designer-admin .cd-dot.amber { background: #ffd08a; box-shadow: 0 0 10px rgba(255, 208, 138, .9); animation: cdGlow 2.2s ease-in-out infinite; }
+.case-designer-admin .cd-dot.bad { background: #ff9e8f; box-shadow: 0 0 10px rgba(255, 158, 143, .9); }
+@keyframes cdGlow {
+  0%, 100% { box-shadow: 0 0 6px rgba(143, 227, 183, .55); }
+  50% { box-shadow: 0 0 14px rgba(143, 227, 183, 1); }
+}
+
+/* ============================================================
+   نوار تب افقی چسبان
+   ============================================================ */
+.case-designer-admin .cd-tabbar {
+  position: sticky; top: 0; z-index: 60;
+  background: rgba(246, 244, 238, .93);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  padding: 12px 0 8px; margin-top: 14px;
+  border-radius: 16px;
+}
+.case-designer-admin .cd-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  background: var(--cd-card);
+  border: 1px solid var(--cd-line);
+  border-radius: 16px; padding: 6px;
+  box-shadow: 0 8px 24px -14px rgba(34, 29, 21, .16);
+}
+.case-designer-admin .cd-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border: none; background: none; cursor: pointer;
+  border-radius: 11px; font-family: inherit; font-size: 13px; font-weight: 700;
+  color: var(--cd-ink2); transition: color .15s, background .15s, box-shadow .15s;
+}
+.case-designer-admin .cd-tab .cd-ic { width: 15px; height: 15px; }
+.case-designer-admin .cd-tab:hover { background: var(--cd-line-soft); color: var(--cd-ink); }
+.case-designer-admin .cd-tab.active {
+  background: linear-gradient(135deg, var(--cd-teal), var(--cd-teal-d));
+  color: #fff;
+  box-shadow: 0 6px 16px -6px rgba(14, 122, 107, .55);
+}
+.case-designer-admin .cd-badge {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px;
+  background: var(--cd-bad-l); color: #fff;
+  border-radius: 999px; padding: 0 6px; font-size: 10.5px; font-weight: 700; line-height: 1.7;
+}
+.case-designer-admin .cd-tab .cd-badge { margin-inline-start: 2px; }
+
+/* ============================================================
+   بدنه و کارت‌ها
+   ============================================================ */
+.case-designer-admin .cd-body { margin-top: 14px; }
+.case-designer-admin .cd-card {
+  background: var(--cd-card);
+  border: 1px solid var(--cd-line);
+  border-radius: 18px;
+  box-shadow: var(--cd-shadow);
+  padding: 18px;
+}
+.case-designer-admin .cd-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.case-designer-admin .cd-card-title { display: inline-flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 800; color: var(--cd-ink); }
+.case-designer-admin .cd-card-title .cd-ic { width: 17px; height: 17px; color: var(--cd-teal); }
+.case-designer-admin .cd-count {
+  background: var(--cd-teal-soft); color: var(--cd-teal-d);
+  border-radius: 999px; padding: 0 9px; font-size: 11px; font-weight: 800; line-height: 1.8;
+}
+.case-designer-admin .cd-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--cd-line-soft); color: var(--cd-ink2);
+  border-radius: 999px; padding: 1px 10px; font-size: 11.5px; font-weight: 700;
+}
+.case-designer-admin .cd-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-inline-start: auto; }
+.case-designer-admin .cd-note-inline { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--cd-ink2); }
+.case-designer-admin .cd-note-inline .cd-ic { color: var(--cd-amber); }
+
+/* ---------- عنوان بخش‌ها با نوار تأکید گرادیانی ---------- */
+.case-designer-admin .cd-sec-title { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 800; color: var(--cd-ink); margin: 2px 0 10px; }
+.case-designer-admin .cd-sec-bar { width: 5px; height: 18px; border-radius: 3px; background: linear-gradient(180deg, var(--cd-teal-l), var(--cd-teal-d)); flex-shrink: 0; }
+
+/* ============================================================
+   دکمه‌ها
+   ============================================================ */
+.case-designer-admin .cd-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 15px; border: 1.5px solid var(--cd-line); border-radius: 12px;
+  background: var(--cd-card); color: var(--cd-ink);
+  font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1.7;
+  cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s, background .15s;
+}
+.case-designer-admin .cd-btn .cd-ic { width: 14px; height: 14px; }
+.case-designer-admin .cd-btn:hover { border-color: #d8d1c2; transform: translateY(-1px); box-shadow: 0 8px 18px -10px rgba(34, 29, 21, .3); }
+.case-designer-admin .cd-btn-primary {
+  border: none; color: #fff;
+  background: linear-gradient(135deg, var(--cd-teal-l), var(--cd-teal));
+  box-shadow: 0 8px 18px -8px rgba(14, 122, 107, .55);
+}
+.case-designer-admin .cd-btn-primary:hover { background: linear-gradient(135deg, #179a86, #0b6b5d); }
+.case-designer-admin .cd-btn-danger { color: var(--cd-bad-l); border-color: rgba(179, 38, 30, .28); background: #fdf6f5; }
+.case-designer-admin .cd-btn-danger:hover { background: #fbeae8; border-color: rgba(179, 38, 30, .45); }
+.case-designer-admin .cd-btn-sm { padding: 6px 12px; font-size: 12.5px; border-radius: 10px; }
+.case-designer-admin .cd-btn[disabled] { opacity: .5; pointer-events: none; }
+.case-designer-admin .cd-rowbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* ============================================================
+   فرم‌ها
+   ============================================================ */
+.case-designer-admin .cd-fields { display: flex; flex-direction: column; gap: 14px; }
+.case-designer-admin .cd-fields-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.case-designer-admin .cd-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--cd-ink); }
+.case-designer-admin .cd-input {
+  width: 100%; background: #fbfaf6;
+  border: 1.5px solid var(--cd-line); border-radius: 12px;
+  padding: 9px 12px; font-family: inherit; font-size: 13px; color: var(--cd-ink);
+  line-height: 1.9; transition: border-color .15s, box-shadow .15s;
+}
+.case-designer-admin .cd-input::placeholder { color: var(--cd-ink3); }
+.case-designer-admin .cd-input:focus { outline: none; border-color: var(--cd-teal); box-shadow: 0 0 0 4px var(--cd-ring); }
+.case-designer-admin select.cd-input { cursor: pointer; }
+.case-designer-admin textarea.cd-input { min-height: 92px; resize: vertical; }
+.case-designer-admin .cd-color { padding: 4px; height: 42px; cursor: pointer; }
+.case-designer-admin .cd-helper { font-size: 11.5px; color: var(--cd-ink3); line-height: 1.9; margin-top: 2px; }
+.case-designer-admin .cd-upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.case-designer-admin .cd-upload-row .cd-input { max-width: 340px; }
+
+/* ---------- سوییچ ۵۰×۲۸ (گوی سفید، RTL با ترجمه منفی) ---------- */
+.case-designer-admin .cd-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px dashed var(--cd-line-soft); }
+.case-designer-admin .cd-switch-row:last-child { border-bottom: none; }
+.case-designer-admin .cd-switch-lbl { display: flex; flex-direction: column; gap: 2px; }
+.case-designer-admin .cd-switch-lbl b { font-size: 13px; font-weight: 700; }
+.case-designer-admin .cd-switch-lbl span { font-size: 11.5px; color: var(--cd-ink3); }
+.case-designer-admin .cd-switch { position: relative; display: inline-block; width: 50px; height: 28px; flex-shrink: 0; }
+.case-designer-admin .cd-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 2; }
+.case-designer-admin .cd-sw-track {
+  position: absolute; inset: 0; border-radius: 999px; background: #ece7db;
+  transition: background .18s; pointer-events: none;
+}
+.case-designer-admin .cd-sw-knob {
+  position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 2px 7px rgba(34, 29, 21, .28);
+  transition: transform .18s; pointer-events: none;
+}
+.case-designer-admin .cd-switch input:checked ~ .cd-sw-track { background: var(--cd-teal); }
+.case-designer-admin .cd-switch input:checked ~ .cd-sw-track .cd-sw-knob { transform: translateX(-22px); }
+.case-designer-admin .cd-switch input:focus-visible ~ .cd-sw-track { box-shadow: 0 0 0 4px var(--cd-ring); }
+
+/* ---------- کنترل segmented ---------- */
+.case-designer-admin .cd-seg {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  background: #ece7db; border-radius: 12px; padding: 4px;
+}
+.case-designer-admin .cd-seg-opt {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: none; background: none; cursor: pointer;
+  padding: 6px 12px; border-radius: 8px;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; color: var(--cd-ink2);
+  transition: background .15s, color .15s, box-shadow .15s;
+}
+.case-designer-admin .cd-seg-opt:hover { color: var(--cd-ink); }
+.case-designer-admin .cd-seg-opt.active { background: var(--cd-card); color: var(--cd-ink); box-shadow: 0 2px 8px rgba(34, 29, 21, .14); }
+.case-designer-admin .cd-swatch { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(34, 29, 21, .14); flex-shrink: 0; }
+
+/* ============================================================
+   داشبورد: KPI‌ها
+   ============================================================ */
+.case-designer-admin .cd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.case-designer-admin .cd-kpi {
+  position: relative; overflow: hidden;
+  background: var(--cd-card); border: 1px solid var(--cd-line); border-radius: 13px;
+  padding: 16px 16px 13px; box-shadow: var(--cd-shadow);
+}
+.case-designer-admin .cd-kpi-strip { position: absolute; top: 0; right: 0; left: 0; height: 4px; }
+.case-designer-admin .cd-kpi-label { display: flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; color: var(--cd-ink2); }
+.case-designer-admin .cd-kpi-label .cd-ic { width: 14px; height: 14px; opacity: .8; }
+.case-designer-admin .cd-kpi-val { font-size: 22px; font-weight: 800; color: var(--cd-ink); line-height: 1.5; margin-top: 2px; }
+.case-designer-admin .cd-kpi-sub { font-size: 11px; color: var(--cd-ink3); line-height: 1.8; }
+
+/* ---------- نمودار ناحیه‌ای روشن + کارت خلاصه ---------- */
+.case-designer-admin .cd-dashgrid { display: grid; grid-template-columns: 1.62fr 1fr; gap: 14px; margin-top: 14px; align-items: stretch; }
+.case-designer-admin .cd-chart { width: 100%; display: block; margin-top: 6px; }
+.case-designer-admin .cd-sum-num { font-size: 30px; font-weight: 800; color: var(--cd-teal); line-height: 1.4; }
+.case-designer-admin .cd-sum-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 9px 2px; border-bottom: 1px dashed var(--cd-line);
+  font-size: 12.5px;
+}
+.case-designer-admin .cd-sum-row:last-child { border-bottom: none; }
+.case-designer-admin .cd-sum-row .k { color: var(--cd-ink2); display: inline-flex; align-items: center; gap: 7px; }
+.case-designer-admin .cd-sum-row .k .cd-ic { width: 13px; height: 13px; color: var(--cd-ink3); }
+.case-designer-admin .cd-sum-row .v { font-weight: 800; color: var(--cd-ink); }
+
+/* ---------- سلامت + لینک‌های سریع ---------- */
+.case-designer-admin .cd-dashgrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; align-items: stretch; }
+.case-designer-admin .cd-healthcol { display: flex; flex-direction: column; gap: 12px; }
+.case-designer-admin .cd-health {
+  display: flex; align-items: center; gap: 13px;
+  background: var(--cd-card); border: 1px solid var(--cd-line); border-radius: 13px;
+  padding: 13px 15px; box-shadow: var(--cd-shadow); flex: 1;
+}
+.case-designer-admin .cd-ring {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+  border: 4px solid var(--cd-teal-soft);
+  display: grid; place-items: center;
+}
+.case-designer-admin .cd-ring .cd-dot { width: 9px; height: 9px; border-radius: 50%; }
+.case-designer-admin .cd-ring .cd-dot.ok { background: var(--cd-ok); animation: cdPulse 2.4s ease-out infinite; }
+.case-designer-admin .cd-ring .cd-dot.amber { background: var(--cd-amber); animation: cdPulseA 2.4s ease-out infinite; }
+.case-designer-admin .cd-ring .cd-dot.bad { background: var(--cd-bad-l); }
+@keyframes cdPulse { 0% { box-shadow: 0 0 0 0 rgba(23, 114, 69, .4); } 70% { box-shadow: 0 0 0 9px rgba(23, 114, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(23, 114, 69, 0); } }
+@keyframes cdPulseA { 0% { box-shadow: 0 0 0 0 rgba(194, 113, 29, .4); } 70% { box-shadow: 0 0 0 9px rgba(194, 113, 29, 0); } 100% { box-shadow: 0 0 0 0 rgba(194, 113, 29, 0); } }
+.case-designer-admin .cd-health-txt { min-width: 0; }
+.case-designer-admin .cd-health-txt b { display: block; font-size: 13px; font-weight: 800; }
+.case-designer-admin .cd-health-txt span { display: block; font-size: 11.5px; color: var(--cd-ink2); line-height: 1.8; }
+.case-designer-admin .cd-qlinks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.case-designer-admin .cd-qlink {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  background: var(--cd-card); border: 1px solid var(--cd-line); border-radius: 13px;
+  padding: 14px; cursor: pointer; text-align: right;
+  font-family: inherit; box-shadow: var(--cd-shadow);
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+.case-designer-admin .cd-qlink:hover { transform: translateY(-3px); box-shadow: var(--cd-shadow-lg); border-color: #d8d1c2; }
+.case-designer-admin .cd-qlink-ic {
+  width: 38px; height: 38px; border-radius: 11px;
+  background: var(--cd-teal-soft); color: var(--cd-teal-d);
+  display: grid; place-items: center;
+}
+.case-designer-admin .cd-qlink-ic .cd-ic { width: 18px; height: 18px; }
+.case-designer-admin .cd-qlink b { font-size: 13px; font-weight: 800; color: var(--cd-ink); }
+.case-designer-admin .cd-qlink span { font-size: 11.5px; color: var(--cd-ink2); line-height: 1.7; }
+
+/* ============================================================
+   نوار ذخیره چسبان
+   ============================================================ */
+.case-designer-admin .cd-savebar {
+  position: sticky; bottom: 14px; z-index: 55;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--cd-ink); color: #f3efe6;
+  border-radius: 16px; padding: 11px 16px;
+  box-shadow: 0 16px 40px -12px rgba(34, 29, 21, .55);
+  margin-top: 16px;
+}
+.case-designer-admin .cd-sb-note { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; opacity: .92; }
+.case-designer-admin .cd-sb-note .cd-ic { color: #8fe3b7; }
+.case-designer-admin .cd-savebar .cd-btn { margin-inline-start: auto; }
+
+/* ============================================================
+   لیست مدل‌ها + ادیتور موکاپ
+   ============================================================ */
+.case-designer-admin .cd-grid { display: grid; grid-template-columns: minmax(320px, 1.05fr) 1.62fr; gap: 14px; align-items: start; }
+.case-designer-admin .cd-mlist { display: flex; flex-direction: column; gap: 8px; max-height: 660px; overflow-y: auto; padding-inline-start: 2px; }
+.case-designer-admin .cd-mitem {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--cd-card); border: 1.5px solid var(--cd-line); border-radius: 13px;
+  padding: 9px 10px; cursor: pointer; transition: border-color .14s, background .14s, box-shadow .14s;
+}
+.case-designer-admin .cd-mitem:hover { border-color: #d8d1c2; background: #fbfaf6; }
+.case-designer-admin .cd-mitem.active {
+  border-color: var(--cd-teal); background: #eef7f5;
+  box-shadow: 0 6px 16px -8px rgba(14, 122, 107, .4);
+}
+.case-designer-admin .cd-mthumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--cd-line); flex-shrink: 0; background: #fbfaf6; }
+.case-designer-admin .cd-mthumb-empty { display: grid; place-items: center; color: var(--cd-ink3); }
+.case-designer-admin .cd-minfo { min-width: 0; flex: 1; }
+.case-designer-admin .cd-mname { font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-designer-admin .cd-mmeta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--cd-ink2); }
+.case-designer-admin .cd-mmeta .cd-ic { width: 12px; height: 12px; }
+.case-designer-admin .cd-mdel {
+  width: 28px; height: 28px; border: none; border-radius: 9px; cursor: pointer;
+  background: none; color: var(--cd-bad-l); opacity: 0; flex-shrink: 0;
+  display: grid; place-items: center; transition: opacity .14s, background .14s;
+}
+.case-designer-admin .cd-mdel .cd-ic { width: 14px; height: 14px; }
+.case-designer-admin .cd-mitem:hover .cd-mdel { opacity: 1; }
+.case-designer-admin .cd-mdel:hover { background: #fbeae8; }
+
+/* ---------- ناحیه کادرکشی ---------- */
+.case-designer-admin .cd-drawwrap {
+  background: #fbfaf6; border: 1.5px dashed var(--cd-line);
+  border-radius: 14px; padding: 14px; display: flex; justify-content: center;
+  margin-top: 14px;
+}
+.case-designer-admin .cd-draw {
+  position: relative; height: 560px; max-width: 100%; overflow: hidden;
+  background: radial-gradient(320px 200px at 70% 0%, rgba(14, 122, 107, .06), transparent 75%), #fbfaf6;
+  border-radius: 12px; width: 100%;
+  /* وسط‌چین ضدگلوله با flex — رِست سراسری هاست (مثل #case-designer-root * { margin:0 })
+     نمی‌تواند وسط‌چینی را بشکند؛ ارتفاع/عرض کادر توسط JS متناسب با عکس (hug) تنظیم می‌شود */
+  display: flex; justify-content: center; align-items: flex-start; padding: 12px;
+}
+.case-designer-admin .cd-imgwrap { position: relative; flex-shrink: 0; box-shadow: 0 14px 32px -14px rgba(34, 29, 21, .4); border-radius: 14px; overflow: hidden; }
+.case-designer-admin .cd-imgwrap img { display: block; }
+.case-designer-admin .cd-draw .cd-empty { width: 100%; }
+.case-designer-admin .cd-draw-err {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 36px 22px; text-align: center; color: var(--cd-ink2);
+}
+.case-designer-admin .cd-draw-err .cd-draw-err-ic {
+  width: 46px; height: 46px; border-radius: 999px; display: grid; place-items: center;
+  background: #fbeae8; color: var(--cd-bad-l); margin-bottom: 4px;
+}
+.case-designer-admin .cd-draw-err b { color: var(--cd-ink); font-size: 13.5px; }
+.case-designer-admin .cd-draw-err span { font-size: 11.5px; max-width: 340px; }
+.case-designer-admin .cd-draw-err .cd-btn { margin-top: 8px; }
+.case-designer-admin .cd-rect {
+  position: absolute; border: 2px solid; cursor: move; touch-action: none; border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .45);
+}
+.case-designer-admin .cd-rect-label {
+  position: absolute; top: -22px; right: 0; font-size: 10.5px; font-weight: 800; color: #fff;
+  padding: 1px 10px; border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(34, 29, 21, .25);
+}
+.case-designer-admin .cd-rect-size {
+  position: absolute; bottom: -23px; left: 0; font-size: 10px; color: var(--cd-ink);
+  background: var(--cd-card); padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(34, 29, 21, .18); border: 1px solid var(--cd-line);
+}
+.case-designer-admin .cd-rect-del {
+  position: absolute; top: -12px; left: -12px; width: 23px; height: 23px; border-radius: 50%;
+  background: var(--cd-card); color: var(--cd-bad-l); border: 1px solid var(--cd-line);
+  font-size: 11px; cursor: pointer; display: none; place-items: center;
+  box-shadow: 0 2px 6px rgba(34, 29, 21, .18); padding: 0;
+}
+.case-designer-admin .cd-rect-del .cd-ic { width: 11px; height: 11px; }
+.case-designer-admin .cd-rect:hover .cd-rect-del { display: grid; }
+.case-designer-admin .cd-rect-handle {
+  position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff;
+  border: 2px solid; bottom: -7px; right: -7px; cursor: nwse-resize;
+  box-shadow: 0 2px 6px rgba(34, 29, 21, .25);
+}
+.case-designer-admin .cd-rect-radhandle {
+  position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+  width: 19px; height: 19px; border-radius: 50%; background: #fff; border: 2px solid;
+  display: grid; place-items: center; cursor: ew-resize; z-index: 3;
+  box-shadow: 0 2px 6px rgba(34, 29, 21, .2);
+}
+.case-designer-admin .cd-rect-radhandle::before { content: ''; width: 7px; height: 2px; border-radius: 2px; background: var(--cd-ink2); }
+
+/* ============================================================
+   کاشی‌های استیکر/طرح
+   ============================================================ */
+.case-designer-admin .cd-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.case-designer-admin .cd-tile {
+  position: relative; background: var(--cd-card); border: 1px solid var(--cd-line);
+  border-radius: 13px; padding: 10px; text-align: center;
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.case-designer-admin .cd-tile:hover { transform: translateY(-2px); box-shadow: var(--cd-shadow-lg); border-color: #d8d1c2; }
+.case-designer-admin .cd-tile img { width: 100%; height: 96px; object-fit: contain; border-radius: 9px; background: #fbfaf6; }
+.case-designer-admin .cd-tile-name { font-size: 12px; font-weight: 700; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-designer-admin .cd-tile-del { position: absolute; top: 6px; left: 6px; opacity: 0; transition: opacity .15s; }
+.case-designer-admin .cd-tile:hover .cd-tile-del { opacity: 1; }
+
+/* ============================================================
+   جدول سفارش‌ها
+   ============================================================ */
+.case-designer-admin .cd-table-wrap { overflow-x: auto; border: 1px solid var(--cd-line-soft); border-radius: 13px; }
+.case-designer-admin .cd-table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 760px; }
+.case-designer-admin .cd-table th {
+  text-align: right; font-weight: 800; color: var(--cd-ink2); font-size: 11.5px;
+  padding: 9px 10px; border-bottom: 1.5px solid var(--cd-line); white-space: nowrap;
+}
+.case-designer-admin .cd-table td { padding: 10px; border-bottom: 1px solid var(--cd-line-soft); vertical-align: middle; }
+.case-designer-admin .cd-table tbody tr:last-child td { border-bottom: none; }
+.case-designer-admin .cd-table tbody tr:hover td { background: #fbfaf6; }
+.case-designer-admin .cd-thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--cd-line); display: block; }
+.case-designer-admin .cd-status { width: auto; min-width: 118px; padding: 5px 9px; font-size: 12px; }
+
+/* ============================================================
+   بنر خطا / یادداشت‌ها / خالی / لودینگ
+   ============================================================ */
+.case-designer-admin .cd-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #faf3e7; color: #6b4d1d;
+  border: 1.5px solid #e7dcc2; border-radius: 14px;
+  padding: 11px 15px; margin: 14px 0 0; font-size: 12.5px; font-weight: 700;
+}
+.case-designer-admin .cd-banner .cd-ic { width: 15px; height: 15px; color: var(--cd-amber); }
+.case-designer-admin .cd-banner .cd-btn { margin-inline-start: auto; }
+.case-designer-admin .cd-note {
+  display: flex; gap: 9px; align-items: flex-start;
+  background: var(--cd-line-soft); color: var(--cd-ink2);
+  border-radius: 12px; padding: 10px 14px; font-size: 12px; line-height: 1.9; margin-top: 12px;
+}
+.case-designer-admin .cd-note .cd-ic { color: var(--cd-teal); margin-top: 6px; flex-shrink: 0; }
+.case-designer-admin .cd-note-ok { background: var(--cd-teal-soft); color: var(--cd-teal-d); }
+.case-designer-admin .cd-note-ok .cd-ic { color: var(--cd-ok); }
+.case-designer-admin .cd-note b { font-weight: 800; }
+.case-designer-admin .cd-empty { text-align: center; padding: 44px 16px; color: var(--cd-ink2); }
+.case-designer-admin .cd-empty-ic {
+  width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 16px;
+  background: var(--cd-line-soft); color: var(--cd-ink3);
+  display: grid; place-items: center;
+}
+.case-designer-admin .cd-empty-ic .cd-ic { width: 24px; height: 24px; }
+.case-designer-admin .cd-empty-title { font-weight: 800; color: var(--cd-ink); font-size: 14px; }
+.case-designer-admin .cd-empty-desc { font-size: 12px; color: var(--cd-ink3); margin-top: 4px; line-height: 1.9; }
+.case-designer-admin .cd-loading { display: flex; align-items: center; gap: 10px; color: var(--cd-ink2); padding: 30px 8px; font-size: 13px; }
+.case-designer-admin .cd-spinner {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2.5px solid var(--cd-teal-soft); border-top-color: var(--cd-teal);
+  animation: cdSpin .8s linear infinite; flex-shrink: 0;
+}
+@keyframes cdSpin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   مودال + توست
+   ============================================================ */
+.cd-modal-veil {
+  position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; padding: 20px;
+  background: rgba(34, 29, 21, .45);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.cd-modal {
+  background: var(--cd-card, #fff); border: 1px solid #e7e1d5; border-radius: 18px;
+  box-shadow: 0 30px 70px -20px rgba(34, 29, 21, .5);
+  width: min(560px, 94vw); max-height: 88vh; display: flex; flex-direction: column;
+  direction: rtl; font-family: 'Vazirmatn', Tahoma, sans-serif; color: #221d15;
+}
+.cd-modal.wide { width: min(720px, 94vw); }
+.cd-modal-md { width: min(640px, 94vw); }
+.cd-modal-lg { width: min(880px, 94vw); }
+.cd-modal-head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 16px 18px; border-bottom: 1px solid #f0ece2;
+  font-size: 14.5px; font-weight: 800;
+}
+.cd-modal-head .cd-ic { width: 17px; height: 17px; color: #0e7a6b; }
+.cd-modal-x {
+  margin-inline-start: auto; width: 30px; height: 30px; border-radius: 10px; border: none;
+  background: #f6f4ee; color: #6f6a5e; display: grid; place-items: center; cursor: pointer;
+  padding: 0; transition: background .14s, color .14s;
+}
+.cd-modal-x:hover { background: #fbeae8; color: #b3261e; }
+.cd-modal-x .cd-ic { width: 13px; height: 13px; color: inherit; }
+.cd-modal-body { padding: 18px; overflow-y: auto; max-height: 66vh; }
+.cd-modal-foot { display: flex; gap: 8px; padding: 14px 18px; border-top: 1px solid #f0ece2; }
+.cd-modal-label { font-size: 12px; font-weight: 800; color: #6f6a5e; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.cd-modal-img { width: 100%; border-radius: 12px; border: 1px solid #e7e1d5; }
+.cd-modal-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cd-toasts { position: fixed; bottom: 18px; right: 18px; z-index: 2147483001; display: flex; flex-direction: column; gap: 8px; }
+.cd-toast {
+  display: flex; align-items: center; gap: 9px;
+  background: #221d15; color: #f3efe6;
+  border-radius: 13px; padding: 11px 16px;
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  font-size: 12.5px; font-weight: 700; line-height: 1.9;
+  box-shadow: 0 12px 30px -10px rgba(34, 29, 21, .5);
+  transition: opacity .3s;
+}
+.cd-toast .cd-ic { width: 15px; height: 15px; color: #8fe3b7; }
+.cd-toast.err .cd-ic { color: #ff9e8f; }
+
+/* ============================================================
+   دراپ‌زون آپلود (استیکرها / طرح‌ها / مودال موکاپ)
+   ============================================================ */
+.case-designer-admin .cd-dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  min-height: 150px; padding: 20px 18px; margin-top: 6px;
+  border: 2px dashed #b7d6cf; border-radius: 16px;
+  background: linear-gradient(180deg, rgba(227, 242, 239, .55), rgba(251, 250, 246, 0));
+  text-align: center; cursor: pointer; position: relative;
+  transition: border-color .18s, background .18s, transform .18s, box-shadow .18s;
+}
+.case-designer-admin .cd-dropzone:hover { border-color: var(--cd-teal); background: var(--cd-teal-soft); }
+.case-designer-admin .cd-dropzone.drag {
+  border-color: var(--cd-teal); background: #d9eeea;
+  transform: scale(1.008); box-shadow: 0 0 0 6px rgba(14, 122, 107, .09);
+}
+.case-designer-admin .cd-dropzone.busy { pointer-events: none; opacity: .68; }
+.case-designer-admin .cd-drop-ic {
+  width: 46px; height: 46px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--cd-card); color: var(--cd-teal); box-shadow: var(--cd-shadow);
+}
+.case-designer-admin .cd-drop-ic .cd-ic { width: 21px; height: 21px; }
+.case-designer-admin .cd-dropzone.drag .cd-drop-ic { background: var(--cd-teal); color: #fff; }
+.case-designer-admin .cd-drop-title { font-size: 13.5px; font-weight: 800; color: var(--cd-ink); }
+.case-designer-admin .cd-drop-hint { font-size: 11.5px; color: var(--cd-ink3); }
+.case-designer-admin .cd-drop-cta {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 5px;
+  padding: 6px 14px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+  color: var(--cd-teal-d); background: var(--cd-card); border: 1.5px solid rgba(14, 122, 107, .28);
+  transition: background .15s, color .15s;
+}
+.case-designer-admin .cd-dropzone:hover .cd-drop-cta { background: var(--cd-teal); border-color: var(--cd-teal); color: #fff; }
+
+/* پیش‌نمایش تصویر انتخابی (مودال موکاپ) */
+.case-designer-admin .cd-nmpreview { margin-top: 6px; }
+.case-designer-admin .cd-nmpreview .cd-modal-preview {
+  border: 1.5px dashed #d8d1c2; border-radius: 14px; background: #fbfaf6;
+  padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.case-designer-admin .cd-nmpreview .cd-modal-preview img {
+  max-height: 210px; max-width: 100%; border-radius: 10px;
+  box-shadow: 0 10px 24px -12px rgba(34, 29, 21, .35);
+}
+.case-designer-admin .cd-nmpreview .cd-nmremove { font-size: 11.5px; font-weight: 700; color: var(--cd-bad-l); }
+
+/* پیش‌نمایش زنده در مودال موکاپ */
+.cd-modal .cd-modal-preview {
+  border: 1.5px dashed #d8d1c2; border-radius: 14px; background: #fbfaf6;
+  padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 260px;
+}
+.cd-modal .cd-modal-preview img {
+  max-height: 300px; max-width: 100%; border-radius: 12px;
+  box-shadow: 0 14px 30px -14px rgba(34, 29, 21, .4);
+}
+.cd-modal .cd-modal-preview .cd-helper { text-align: center; }
+.cd-modal .cd-helper { margin-top: 8px; font-size: 11.5px; }
+
+/* نوار فایل انتخابی (بعد از انتخاب تصویر در مودال) */
+.case-designer-admin .cd-filebar {
+  display: flex; align-items: center; gap: 12px;
+  border: 1.5px solid rgba(14, 122, 107, .35); background: var(--cd-teal-soft);
+  border-radius: 14px; padding: 10px 12px; margin-top: 6px;
+}
+.case-designer-admin .cd-filebar-thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--cd-line); background: #fff; }
+.case-designer-admin .cd-filebar-info { flex: 1; min-width: 0; }
+.case-designer-admin .cd-filebar-info b { display: block; font-size: 12.5px; color: var(--cd-teal-d); }
+.case-designer-admin .cd-filebar-info span { font-size: 11px; color: var(--cd-ink3); }
+
+/* انتخاب برند با کارت‌های سگمنتی (مودال موکاپ) */
+.case-designer-admin .cd-brandcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.case-designer-admin .cd-brandcard {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 8px 10px; border-radius: 14px; cursor: pointer;
+  border: 1.5px solid var(--cd-line); background: var(--cd-card);
+  font-family: inherit; font-size: 12.5px; font-weight: 800; color: var(--cd-ink2);
+  transition: border-color .15s, background .15s, color .15s, box-shadow .15s, transform .15s;
+}
+.case-designer-admin .cd-brandcard:hover { border-color: #b7d6cf; color: var(--cd-teal-d); transform: translateY(-1px); }
+.case-designer-admin .cd-brandcard.active {
+  border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal-d);
+  box-shadow: 0 0 0 4px rgba(14, 122, 107, .1);
+}
+.case-designer-admin .cd-brandcard .cd-brandcard-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--cd-line-soft); color: var(--cd-ink3); }
+.case-designer-admin .cd-brandcard.active .cd-brandcard-ic { background: var(--cd-teal); color: #fff; }
+.case-designer-admin .cd-brandcard-ic .cd-ic { width: 20px; height: 20px; }
+
+/* ورودی با پسوند (قیمت + تومان) */
+.case-designer-admin .cd-input-group { display: flex; align-items: stretch; }
+.case-designer-admin .cd-input-group .cd-input { flex: 1; border-radius: 0 12px 12px 0; border-inline-end: none; }
+.case-designer-admin .cd-suffix {
+  display: flex; align-items: center; padding: 0 14px;
+  border: 1.5px solid var(--cd-line); border-inline-start: none; border-radius: 12px 0 0 12px;
+  background: var(--cd-line-soft); color: var(--cd-ink2); font-size: 12px; font-weight: 800;
+  white-space: nowrap;
+}
+.case-designer-admin .cd-input-group .cd-input:focus { border-inline-end: 1.5px solid var(--cd-teal); }
+.case-designer-admin .cd-input-group .cd-input:focus ~ .cd-suffix { border-color: var(--cd-teal); }
+
+/* امضای سازنده — پایین پنل */
+.case-designer-admin .cd-credit {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--cd-line);
+  font-size: 12px; font-weight: 700; color: var(--cd-ink3);
+}
+.case-designer-admin .cd-credit .cd-ic { width: 13px; height: 13px; color: var(--cd-amber); }
+
+/* ============================================================
+   ریسپانسیو — 1000px و 720px
+   ============================================================ */
+@media (max-width: 1000px) {
+  .case-designer-admin { padding: 14px 14px 20px; }
+  .case-designer-admin .cd-kpis { grid-template-columns: 1fr 1fr; }
+  .case-designer-admin .cd-dashgrid, .case-designer-admin .cd-dashgrid2 { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-grid { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-fields-2 { grid-template-columns: 1fr; }
+  .cd-modal-cols { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-hstats { width: 100%; margin-inline-start: 0; }
+}
+@media (max-width: 720px) {
+  .case-designer-admin .cd-header { padding: 16px 16px; }
+  .case-designer-admin .cd-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .case-designer-admin .cd-qlinks { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-tabs { flex-wrap: nowrap; overflow-x: auto; }
+  .case-designer-admin .cd-tab { white-space: nowrap; }
+  .case-designer-admin .cd-savebar { padding: 10px 12px; }
+  .case-designer-admin .cd-savebar .cd-btn { margin-inline-start: 0; width: 100%; justify-content: center; }
+  .case-designer-admin .cd-sb-note { width: 100%; }
+}
+
+/* ============================================================
+   دکمه‌های داخل مودال (مودال به body اضافه می‌شود و خارج از
+   .case-designer-admin است — استایل‌ها باید اینجا هم باشند)
+   ============================================================ */
+.cd-modal .cd-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 15px; border: 1.5px solid #e7e1d5; border-radius: 12px;
+  background: #fff; color: #221d15;
+  font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1.7; cursor: pointer;
+}
+.cd-modal .cd-btn-sm { padding: 6px 12px; font-size: 12.5px; border-radius: 10px; }
+.cd-modal .cd-btn-primary { border: none; color: #fff; background: linear-gradient(135deg, #14907d, #0e7a6b); }
+
+/* ============================================================
+   دمو: در index.html قانون `#case-designer-root button` (سلکتور ID)
+   بر کلاس‌های پنل می‌چربد — اینجا همان حالت‌ها با ID بازتأیید می‌شوند.
+   در وردپرس واقعی #case-designer-root وجود ندارد و این بلوک بی‌اثر است.
+   ============================================================ */
+#case-designer-root .case-designer-admin .cd-tab { border: none; background: none; color: var(--cd-ink2); }
+#case-designer-root .case-designer-admin .cd-tab:hover { background: var(--cd-line-soft); color: var(--cd-ink); }
+#case-designer-root .case-designer-admin .cd-tab.active {
+  background: linear-gradient(135deg, var(--cd-teal), var(--cd-teal-d));
+  color: #fff; box-shadow: 0 6px 16px -6px rgba(14, 122, 107, .55);
+}
+#case-designer-root .case-designer-admin .cd-btn { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-ink); }
+#case-designer-root .case-designer-admin .cd-btn:hover { border-color: #d8d1c2; }
+#case-designer-root .case-designer-admin .cd-btn-primary,
+#case-designer-root .case-designer-admin .cd-btn-primary:hover {
+  border: none; background: linear-gradient(135deg, var(--cd-teal-l), var(--cd-teal)); color: #fff;
+}
+#case-designer-root .case-designer-admin .cd-btn-danger { color: var(--cd-bad-l); border-color: rgba(179, 38, 30, .28); background: #fdf6f5; }
+#case-designer-root .case-designer-admin .cd-btn-danger:hover { background: #fbeae8; }
+#case-designer-root .case-designer-admin .cd-qlink { border: 1px solid var(--cd-line); background: var(--cd-card); color: inherit; }
+#case-designer-root .case-designer-admin .cd-seg-opt { border: none; background: none; color: var(--cd-ink2); }
+#case-designer-root .case-designer-admin .cd-seg-opt.active { background: var(--cd-card); color: var(--cd-ink); }
+#case-designer-root .case-designer-admin .cd-mdel,
+#case-designer-root .case-designer-admin .cd-tile-del,
+#case-designer-root .case-designer-admin .cd-rect-del { border: 1px solid var(--cd-line); background: var(--cd-card); color: var(--cd-bad-l); }
+#case-designer-root .case-designer-admin .cd-savebar .cd-btn { border: none; background: linear-gradient(135deg, var(--cd-teal-l), var(--cd-teal)); color: #fff; }
+#case-designer-root .case-designer-admin .cd-input { border: 1.5px solid var(--cd-line); }
+#case-designer-root .case-designer-admin .cd-switch input { border: none; background: none; }
+#case-designer-root .case-designer-admin .cd-brandcard { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-ink2); }
+#case-designer-root .case-designer-admin .cd-brandcard:hover { border-color: #b7d6cf; color: var(--cd-teal-d); }
+#case-designer-root .case-designer-admin .cd-brandcard.active { border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal-d); }
+#case-designer-root .case-designer-admin .cd-nmremove { border: none; background: none; color: var(--cd-bad-l); }
+#case-designer-root .case-designer-admin .cd-modal-x { border: none; background: #f6f4ee; color: #6f6a5e; }
+#case-designer-root .case-designer-admin .cd-modal-x:hover { background: #fbeae8; color: #b3261e; }

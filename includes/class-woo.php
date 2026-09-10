@@ -1,0 +1,184 @@
+<?php
+/**
+ * یکپارچگی با ووکامرس
+ *
+ * جریان کامل:
+ *  ۱) صفحه‌ی محصول: دکمه‌ی «طراحی قاب» → صفحه‌ی ادیتور (شورت‌کد [case_designer]) با product_id
+ *  ۲) در ادیتور: «افزودن به سبد خرید» → درخواست REST به /add-to-cart با فایل چاپ و JSON طراحی
+ *  ۳) متادیتای طراحی به آیتم سبد/سفارش می‌چسبد و در چک‌اوت و سفارش‌های ادمین نمایش داده می‌شود
+ *  ۴) فایل چاپ (PNG کامل، بدون برش دوربین) در uploads/case-designer/ ذخیره می‌شود
+ *     و چاپخانه همان فایل را دانلود می‌کند — برش دوربین را خودش اعمال می‌کند.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+class Case_Designer_Woo {
+
+	/** متادیتای آیتم: JSON طراحی + آدرس فایل چاپ + تامبنیل */
+	const META_DESIGN     = '_case_design';
+	const META_PRINT_FILE = '_case_print_file';
+	const META_THUMB      = '_case_thumb';
+
+	public static function init() {
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			return; // ووکامرس فعال نیست
+		}
+		// دکمه‌ی «طراحی قاب» روی صفحه‌ی محصول
+		add_action( 'woocommerce_after_add_to_cart_button', array( __CLASS__, 'designer_button' ) );
+
+		// نمایش جزئیات طراحی در سبد خرید و چک‌اوت
+		add_filter( 'woocommerce_get_item_data', array( __CLASS__, 'cart_item_data' ), 10, 2 );
+
+		// ذخیره‌ی متادیتا روی آیتم سفارش
+		add_action( 'woocommerce_checkout_create_order_line_item', array( __CLASS__, 'save_order_item_meta' ), 10, 4 );
+
+		// تامبنیل طرح در آیتم‌های سبد و سفارش ادمین
+		add_filter( 'woocommerce_cart_item_thumbnail', array( __CLASS__, 'cart_thumbnail' ), 10, 3 );
+		add_action( 'woocommerce_admin_order_item_headers', array( __CLASS__, 'order_admin_header' ) );
+		add_action( 'woocommerce_admin_order_item_values', array( __CLASS__, 'order_admin_value' ), 10, 3 );
+
+		// اندپوینت افزودن به سبد با متادیتای طراحی
+		add_action( 'rest_api_init', array( __CLASS__, 'rest_add_to_cart' ) );
+	}
+
+	/** دکمه‌ی ورود به ادیتور در صفحه‌ی محصول */
+	public static function designer_button() {
+		global $product;
+		if ( ! $product || ! self::is_designable( $product->get_id() ) ) {
+			return;
+		}
+		$url = add_query_arg( 'product_id', $product->get_id(), get_permalink( self::editor_page_id() ) );
+		echo '<a class="button alt case-designer-btn" href="' . esc_url( $url ) . '">' .
+			'<i class="fa-solid fa-palette"></i> ' . esc_html__( 'طراحی قاب', 'case-designer' ) . '</a>';
+	}
+
+	/** آیا این محصول قاب چاپی است؟ (محصولی که قابلیت طراحی برای آن فعال شده) */
+	public static function is_designable( $product_id ) {
+		return 'yes' === get_post_meta( $product_id, '_case_designable', true );
+	}
+
+	/** شناسه‌ی صفحه‌ی ادیتور (صفحه‌ای که شورت‌کد [case_designer] دارد) */
+	public static function editor_page_id() {
+		return (int) get_option( 'case_designer_editor_page', 0 );
+	}
+
+	/**
+	 * اندپوینت افزودن به سبد: POST /case-designer/v1/add-to-cart
+	 * بدنه: { product_id, qty, designJson, printPng(base64), thumbPng(base64), modelName }
+	 */
+	public static function rest_add_to_cart() {
+		register_rest_route( 'case-designer/v1', '/add-to-cart', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => array( __CLASS__, 'handle_add_to_cart' ),
+			'permission_callback' => '__return_true',
+		) );
+	}
+
+	public static function handle_add_to_cart( WP_REST_Request $req ) {
+		$p = $req->get_json_params();
+
+		// ۱) ذخیره‌ی فایل چاپ (PNG کامل — بدون برش دوربین) در پوشه‌ی اختصاصی
+		$print_url = self::store_print_file( $p['printPng'], $p['modelName'] ?? 'design' );
+		if ( is_wp_error( $print_url ) ) {
+			return $print_url;
+		}
+
+		// ۲) تامبنیل کوچک برای سبد/سفارش
+		$thumb_url = self::store_thumb( $p['thumbPng'] );
+
+		// ۳) افزودن به سبد ووکامرس با متادیتای طراحی
+		$cart_item_data = array(
+			self::META_DESIGN     => wp_json_encode( $p['designJson'] ),
+			self::META_PRINT_FILE => $print_url,
+			self::META_THUMB      => $thumb_url,
+			'model_name'          => sanitize_text_field( $p['modelName'] ),
+		);
+
+		$key = WC()->cart->add_to_cart( (int) $p['product_id'], (int) $p['qty'], 0, array(), $cart_item_data );
+
+		return $key ? array( 'ok' => true, 'cart_key' => $key, 'cart_url' => wc_get_cart_url() )
+					: new WP_Error( 'cart_failed', __( 'افزودن به سبد ناموفق بود', 'case-designer' ) );
+	}
+
+	/** ذخیره‌ی فایل چاپ و بازگرداندن URL دائمی */
+	protected static function store_print_file( $base64, $name ) {
+		$upload = wp_upload_dir();
+		$dir    = $upload['basedir'] . '/case-designer';
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+		}
+		$file = $dir . '/print-' . uniqid() . '.png';
+		$data = preg_replace( '#^data:image/\w+;base64,#i', '', $base64 );
+		if ( false === file_put_contents( $file, base64_decode( $data ) ) ) {
+			return new WP_Error( 'write_failed', __( 'ذخیره‌ی فایل چاپ ممکن نشد', 'case-designer' ) );
+		}
+		return $upload['baseurl'] . '/case-designer/' . basename( $file );
+	}
+
+	protected static function store_thumb( $base64 ) {
+		$upload = wp_upload_dir();
+		$dir    = $upload['basedir'] . '/case-designer';
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+		}
+		$file = $dir . '/thumb-' . uniqid() . '.jpg';
+		$data = preg_replace( '#^data:image/\w+;base64,#i', '', $base64 );
+		@file_put_contents( $file, base64_decode( $data ) );
+		return $upload['baseurl'] . '/case-designer/' . basename( $file );
+	}
+
+	/** نمایش جزئیات طراحی در سبد و چک‌اوت */
+	public static function cart_item_data( $data, $cart_item ) {
+		if ( ! empty( $cart_item[ self::META_THUMB ] ) ) {
+			$data[] = array(
+				'name'    => __( 'طراحی', 'case-designer' ),
+				'value'   => '<img src="' . esc_url( $cart_item[ self::META_THUMB ] ) . '" style="max-width:64px;border-radius:8px">',
+				'display' => '',
+			);
+		}
+		return $data;
+	}
+
+	/** ذخیره‌ی متادیتا روی آیتم سفارش */
+	public static function save_order_item_meta( $item, $cart_item_key, $values, $order ) {
+		if ( ! empty( $values[ self::META_DESIGN ] ) ) {
+			$item->add_meta_data( self::META_DESIGN, $values[ self::META_DESIGN ] );
+		}
+		if ( ! empty( $values[ self::META_PRINT_FILE ] ) ) {
+			$item->add_meta_data( self::META_PRINT_FILE, $values[ self::META_PRINT_FILE ] );
+		}
+		if ( ! empty( $values[ self::META_THUMB ] ) ) {
+			$item->add_meta_data( self::META_THUMB, $values[ self::META_THUMB ] );
+		}
+	}
+
+	/** تامبنیل طرح در سبد خرید */
+	public static function cart_thumbnail( $html, $cart_item, $cart_item_key ) {
+		if ( ! empty( $cart_item[ self::META_THUMB ] ) ) {
+			return '<img src="' . esc_url( $cart_item[ self::META_THUMB ] ) . '" class="case-design-thumb" alt="">';
+		}
+		return $html;
+	}
+
+	/** ستون «فایل چاپ» در جدول آیتم‌های سفارش (ادمین) */
+	public static function order_admin_header( $order ) {
+		echo '<th class="case-print-cell">' . esc_html__( 'فایل چاپ', 'case-designer' ) . '</th>';
+	}
+
+	public static function order_admin_value( $product, $item, $item_id ) {
+		$print_url = $item->get_meta( self::META_PRINT_FILE );
+		$thumb     = $item->get_meta( self::META_THUMB );
+		echo '<td class="case-print-cell">';
+		if ( $thumb ) {
+			echo '<img src="' . esc_url( $thumb ) . '" style="max-width:52px;border-radius:8px;display:block;margin-bottom:4px">';
+		}
+		if ( $print_url ) {
+			// فایل کامل و بدون برش — چاپخانه همین را دانلود می‌کند
+			echo '<a class="button button-small" href="' . esc_url( $print_url ) . '" download>' .
+				'<i class="fa-solid fa-print"></i> ' . esc_html__( 'دانلود فایل چاپ (بدون برش)', 'case-designer' ) . '</a>';
+		}
+		echo '</td>';
+	}
+}
