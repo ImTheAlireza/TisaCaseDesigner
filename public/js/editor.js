@@ -7,10 +7,68 @@
 const EditorEngine = {
   model: null,
   canvas: null,
-  fitScale: 1,
   guideGroup: null,
   _objects: null,          // بکاپ آبجکت‌ها حین پیش‌نمایش
   state: { preview: false, zoom: 1 },
+
+  /* ================= مدل تبدیل مختصات — تک‌مصدر =================
+     سه فضای مجزا داریم و هر عدد فقط «یک بار» بین‌شان تبدیل می‌شود:
+
+       ۱) img    : پیکسل‌های خام موکاپ. printRect/camRects/radius در دیتابیس
+                   دقیقاً همین‌جا ذخیره می‌شوند (هم‌راستا با کادرهای پنل ادمین).
+       ۲) world  : پیکسل CSS روی بوم. geometry تمام آبجکت‌های فابریک اینجاست:
+                       world = img * fitScale + offset
+       ۳) screen : چیزی که کاربر می‌بیند:
+                       screen = world * zoom   ← zoom فقط زومِ کاربر است (۱ = فیت)
+
+     قانون اصلی: fitScale هرگز در viewport zoom پخته نمی‌شود.
+     اگر پخته شود، موکاپ به fitScale² رسم می‌شود ولی offset (وسط‌چینی) برای
+     fitScale حساب شده؛ نتیجه: تصویر کوچک و کج‌رفته به سمت مبدأ — و خطا
+     فقط وقتی محو می‌شود که fitScale≈۱، یعنی وقتی صفحه را ۵۰٪ زوم‌اوت
+     می‌کنید (ناحیهٔ بوم در پیکسل CSS بزرگ‌تر می‌شود). باگ «در ۵۰٪ درست،
+     در ۱۰۰٪ غلط» دقیقاً همین بود.
+
+     پیامد دوم: هر عدد «طرح» (سایز فونت و…) در فضای img تعریف می‌شود و در
+     world با fitScale ضرب می‌شود. این تنها حالتی است که سایز چاپی طرح نه به
+     اندازهٔ پنجره وابسته شود و نه به زوم کاربر (توضیح در exportPrint). */
+  fitScale: 1,                    // img → world
+  offset: { x: 0, y: 0 },         // وسط‌چینی موکاپ در world
+  MARGIN: 0.94,                   // فاصلهٔ امن دور موکاپ تا به لبهٔ بوم نچسبد
+  FONT_IMG: 44,                   // سایز پیش‌فرض متن، در فضای img
+  ZOOM_MIN: 0.4, ZOOM_MAX: 6,     // سقف/کف زوم کاربر (نسبی به فیت)
+
+  /* اندازه‌گیری ناحیهٔ بوم — تنها منبع.
+     getBoundingClientRect به‌جای clientWidth: با زومِ غیرصحیح مرورگر (۵۰٪/۱۵۰٪
+     و DPR کسری) clientWidth عدد صحیح برمی‌گرداند و بوم تا ~۱px با ناحیهٔ دید
+     فاصله می‌گرفت؛ علاوه بر آن `-4` دستی هم لازم نیست، چون #canvasHolder
+     بوردر ندارد و clientWidth/getBoundingClientRect اسکرول‌بار را کم کرده‌اند. */
+  measure() {
+    const holder = document.getElementById('canvasHolder');
+    if (!holder) return { w: 0, h: 0, holder: null };
+    const r = holder.getBoundingClientRect && holder.getBoundingClientRect();
+    return {
+      w: Math.round(((r && r.width) || holder.clientWidth || 0) * 100) / 100,
+      h: Math.round(((r && r.height) || holder.clientHeight || 0) * 100) / 100,
+      holder,
+    };
+  },
+
+  /* تنها جایی که چیدمان محاسبه می‌شود: ابعاد بوم → { s, x, y } */
+  _layoutFor(w, h) {
+    const m = this.model && this.model.mockup;
+    if (!m || !(m.imgW > 0) || !(m.imgH > 0) || !(w > 0) || !(h > 0)) return null;
+    const s = Math.min(w / m.imgW, h / m.imgH) * this.MARGIN;
+    if (!isFinite(s) || s <= 0) return null;
+    return { s, x: (w - m.imgW * s) / 2, y: (h - m.imgH * s) / 2 };
+  },
+  toWorld(x, y) {                 // img → world
+    const s = this.fitScale, o = this.offset || { x: 0, y: 0 };
+    return { x: x * s + o.x, y: y * s + o.y };
+  },
+  toImg(x, y) {                   // world → img
+    const s = this.fitScale || 1, o = this.offset || { x: 0, y: 0 };
+    return { x: (x - o.x) / s, y: (y - o.y) / s };
+  },
 
   /* ---------- راه‌اندازی ---------- */
   // کلون امن: در نسخه‌های مختلف fabric، clone گاهی promise برمی‌گرداند و گاهی فقط callback می‌گیرد
@@ -56,24 +114,20 @@ const EditorEngine = {
       if (!this.model) return; // تعویض مدل وسط لود
       this.model.mockup.imgW = img.width; this.model.mockup.imgH = img.height;
       this.mockupEl = img.getElement ? img.getElement() : img._element; // برای ماسک‌های نمایش
-      // اسکیل به‌صورت نسبی از خود تصویر (تا با هر رزولوشن موکاپ جور دربیاد) + وسط‌چین‌کردن در بوم
-      // ضریب ۰٫۹۴: حاشیه‌ی کوچک دور موکاپ تا به لبه‌ی بوم نچسبد
-      const fit = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.94;
-      this.fitScale = fit;
-      this.offset = {
-        x: Math.max(0, (canvas.width - img.width * fit) / 2),
-        y: Math.max(0, (canvas.height - img.height * fit) / 2),
-      };
-      canvas.setZoom(fit);
-      const imgScaled = new fabric.Rect({
+      // چیدمان از تک‌مصدر: fit فقط در geometry پخته می‌شود، نه در viewport zoom
+      const L = this._layoutFor(canvas.width, canvas.height) || { s: 1, x: 0, y: 0 };
+      this.fitScale = L.s;
+      this.offset = { x: Math.max(0, L.x), y: Math.max(0, L.y) };
+      const mk = new fabric.Rect({
         left: this.offset.x, top: this.offset.y, width: img.width, height: img.height,
         fill: new fabric.Pattern({ source: img.getElement ? img.getElement() : img._element, repeat: 'no-repeat' }),
         selectable: false, evented: false, excludeFromExport: true,
         objectCaching: false, name: '__mockup__',
+        scaleX: this.fitScale, scaleY: this.fitScale,
       });
-      imgScaled.set({ scaleX: fit, scaleY: fit });
-      canvas.add(imgScaled);
-      imgScaled.sendToBack();
+      canvas.add(mk);
+      mk.sendToBack();
+      this.canvas.setZoom(1);   // ۱ = فیت؛ زومِ کاربر روی این ضرب می‌شود (قبلاً setZoom(fit) بود = fitScale²)
       this.renderGuides(printRect, camRects);
       this.state.preview = false;
       this.state.zoom = 1;
@@ -92,30 +146,33 @@ const EditorEngine = {
     const dash = [6, 4];
     const ox = this.offset?.x || 0, oy = this.offset?.y || 0;
     const pr = (printRect.radius || 0) * s; // شعاع گردی گوشه‌ها (از پنل ادمین)
+    // جای‌گیری کادرها img→world با fitScale؛ ولی ضخامت/فونت «ظاهر» راهنما در world
+    // برابر پیکسل صفحه است (zoom=۱ یعنی فیت)، پس دیگر نباید بر fit تقسیم شوند —
+    // آن تقسیم‌ها فقط برای خنثی‌کردن زومِ fitScale در مدل قبلی بود.
     const printBox = new fabric.Rect({
       left: printRect.x * s + ox, top: printRect.y * s + oy, width: printRect.w * s, height: printRect.h * s,
       rx: pr, ry: pr,
-      fill: 'rgba(48,79,254,0.05)', stroke: printColor, strokeWidth: 1.4 / s,
+      fill: 'rgba(48,79,254,0.05)', stroke: printColor, strokeWidth: 1.4,
       strokeDashArray: dash, selectable: false, evented: false, excludeFromExport: true,
       objectCaching: false, name: '__guide_print__',
     });
     // برچسب چیپ‌شکل: پس‌زمینه‌ی گردِ همرنگ + متن سفید (بازطراحی تمیز)
     const mkChip = (txt, color, x, y, alignRight) => {
       const t = new fabric.Text(txt, {
-        fontSize: 9.5 / s, fill: '#fff', fontFamily: 'Vazirmatn', fontWeight: 'bold',
+        fontSize: 9.5, fill: '#fff', fontFamily: 'Vazirmatn', fontWeight: 'bold',
         selectable: false, evented: false, excludeFromExport: true, objectCaching: false,
       });
-      const pad = 6 / s;
+      const pad = 6;
       const chip = new fabric.Rect({
         left: alignRight ? x - t.width - pad * 2 : x, top: y,
-        width: t.width + pad * 2, height: t.height + 4 / s,
-        rx: (t.height + 4 / s) / 2, ry: (t.height + 4 / s) / 2,
+        width: t.width + pad * 2, height: t.height + 4,
+        rx: (t.height + 4) / 2, ry: (t.height + 4) / 2,
         fill: color, selectable: false, evented: false, excludeFromExport: true, objectCaching: false,
       });
-      t.set({ left: chip.left + pad, top: chip.top + 2 / s });
+      t.set({ left: chip.left + pad, top: chip.top + 2 });
       return [chip, t];
     };
-    const inset = 4 / s;
+    const inset = 4;
     const [printChip, printTxt] = mkChip('فضای چاپ', printColor, printBox.left + inset, printBox.top + inset, false);
     objs.push(printBox, printChip, printTxt);
     camRects.forEach(c => {
@@ -123,7 +180,7 @@ const EditorEngine = {
       const camBox = new fabric.Rect({
         left: c.x * s + ox, top: c.y * s + oy, width: c.w * s, height: c.h * s,
         rx: cr, ry: cr,
-        fill: 'rgba(237,25,68,0.06)', stroke: camColor, strokeWidth: 1.4 / s,
+        fill: 'rgba(237,25,68,0.06)', stroke: camColor, strokeWidth: 1.4,
         strokeDashArray: dash, selectable: false, evented: false, excludeFromExport: true,
         objectCaching: false, name: '__guide_cam__',
       });
@@ -294,11 +351,11 @@ const EditorEngine = {
     this.canvas.on('object:removed', o => { if (!o.target.excludeFromExport) this.onObjectChanged(); });
     this.canvas.on('mouse:wheel', opt => {
       const d = opt.e.deltaY;
-      let zoom = this.canvas.getZoom();
-      zoom *= 0.999 ** d;
-      zoom = Math.min(Math.max(zoom, this.fitScale * 0.4), this.fitScale * 6);
+      // زومِ کاربر نسبت به «فیت» تعریف می‌شود (۱ = فیت) و تنها همان در viewport می‌نشیند
+      let zoom = this.state.zoom * (0.999 ** d);
+      zoom = Math.min(Math.max(zoom, this.ZOOM_MIN), this.ZOOM_MAX);
       this.canvas.zoomToPoint(new fabric.Point(opt.e.offsetX, opt.e.offsetY), zoom);
-      this.state.zoom = zoom / this.fitScale;
+      this.state.zoom = zoom;
       this._clampViewport();
       opt.e.preventDefault(); opt.e.stopPropagation();
       this.emitZoom();
@@ -319,37 +376,46 @@ const EditorEngine = {
     this.canvas.requestRenderAll();
   },
 
+  /* ری‌فیت کامل بوم: تنها جایی که ابعاد viewport → چیدمان تبدیل می‌شود.
+     لایه‌های کاربر «نسبت به کادر چاپ» قفل می‌مانند و با همان ضریبِ فیت بزرگ/کوچک می‌شوند،
+     پس طرح با اندازهٔ پنجره نمی‌پُرد و سایز چاپی‌اش هم ثابت می‌ماند. */
   resize() {
-    const holder = document.getElementById('canvasHolder');
-    const w = holder.clientWidth - 4, h = holder.clientHeight - 4;
+    if (!this.canvas) return;
+    const { w, h } = this.measure();
     if (w < 100 || h < 100) return;
+    // اگر اندازه عوض نشده، هیچ کاری نکن — از رانش اعشاریِ لایه‌ها در هر callback جلوی ResizeObserver
+    // (تلورانس ۰٫۵px: با DPR کسری، ناوبک هر بار کسرِ خیلی ریز متفاوتی می‌دهد)
+    if (this._lastW != null && Math.abs(this._lastW - w) < .5 && Math.abs(this._lastH - h) < .5) return;
+    this._lastW = w; this._lastH = h;
     const m = this.model?.mockup;
     if (!m || !m.imgW) { this.canvas.setDimensions({ width: w, height: h }); return; }
-    // ری‌فیت کامل: موکاپ همیشه به اندازه‌ی درست و وسط بوم — و لایه‌ها نسبت به فضای چاپ قفل می‌مانند
-    const oldFit = this.fitScale || 1;
-    const newFit = Math.min(w / m.imgW, h / m.imgH) * 0.94;
-    const k = newFit / oldFit;
+    const L = this._layoutFor(w, h);
+    if (!L) return;
+    // چیدمان «قبلی» صریح نگه داشته می‌شود تا نگاشت لایه‌ها به state در حال تغییر وابسته نباشد
+    const oldFit = this.fitScale > 0 ? this.fitScale : L.s, newFit = L.s;
     const oldOff = this.offset || { x: 0, y: 0 };
-    const newOff = { x: (w - m.imgW * newFit) / 2, y: (h - m.imgH * newFit) / 2 };
-    const oldBoxLeft = m.printRect.x * oldFit + oldOff.x;
-    const oldBoxTop = m.printRect.y * oldFit + oldOff.y;
-    const newBoxLeft = m.printRect.x * newFit + newOff.x;
-    const newBoxTop = m.printRect.y * newFit + newOff.y;
+    const k = newFit / oldFit;
+    const newOff = { x: Math.max(0, L.x), y: Math.max(0, L.y) };
+    const oldBox = { x: m.printRect.x * oldFit + oldOff.x, y: m.printRect.y * oldFit + oldOff.y };
+    const newBox = { x: m.printRect.x * newFit + newOff.x, y: m.printRect.y * newFit + newOff.y };
     this.canvas.setDimensions({ width: w, height: h });
     this.fitScale = newFit;
     this.offset = newOff;
     // موکاپ
     const mk = this.canvas.getObjects().find(o => o.name === '__mockup__');
     if (mk) mk.set({ left: newOff.x, top: newOff.y, width: m.imgW, height: m.imgH, scaleX: newFit, scaleY: newFit });
-    // لایه‌های کاربر: نسبت به کادر چاپ در همان نقطه می‌مانند (مقیاس هم همگام می‌شود)
+    // لایه‌های کاربر: هم‌نسبت با موکاپ، چسبیده به همان نقطهٔ کادر چاپ
     this.layers().forEach(o => {
-      o.set({ left: newBoxLeft + (o.left - oldBoxLeft) * k, top: newBoxTop + (o.top - oldBoxTop) * k });
-      if (o.type === 'textbox') o.set({ fontSize: (o.fontSize || 20) * k });
-      else o.set({ scaleX: (o.scaleX || 1) * k, scaleY: (o.scaleY || 1) * k });
+      o.set({ left: newBox.x + (o.left - oldBox.x) * k, top: newBox.y + (o.top - oldBox.y) * k });
+      if (o.type === 'textbox') {
+        o.set({ fontSize: (o.fontSize || 20) * k, width: Math.max(10, (o.width || 10) * k) });
+      } else {
+        o.set({ scaleX: (o.scaleX || 1) * k, scaleY: (o.scaleY || 1) * k });
+      }
       o.setCoords();
     });
     if (!this.state.preview) this.renderGuides(m.printRect, m.camRects);
-    this.canvas.setZoom(this.fitScale * this.state.zoom);
+    this.canvas.setZoom(this.state.zoom);   // ← بدون fitScale؛ فیت در geometry پخته است
     this._clampViewport();
     this.canvas.requestRenderAll();
   },
@@ -374,11 +440,10 @@ const EditorEngine = {
 
   /* ---------- افزودن آبجکت ---------- */
   center() { const p = this.printBox(); return new fabric.Point(p.left + p.width / 2, p.top + p.height / 2); },
-  printBox() {
-    const s = this.fitScale, r = this.model.mockup.printRect;
+  printBox() {                       // کادر چاپ در فضای world (تک‌مصدر: toWorld)
+    const r = this.model.mockup.printRect, p = this.toWorld(r.x, r.y);
     return {
-      left: r.x * s + (this.offset?.x || 0), top: r.y * s + (this.offset?.y || 0),
-      width: r.w * s, height: r.h * s,
+      left: p.x, top: p.y, width: r.w * this.fitScale, height: r.h * this.fitScale,
     };
   },
   fitObject(obj, maxRatio) {
@@ -403,7 +468,9 @@ const EditorEngine = {
     const t = new fabric.Textbox(text, {
       ...{
         originX: 'center', originY: 'center', name: uid(),
-        fontFamily: 'Vazirmatn', fontSize: 44 / this.fitScale, fill: '#111827',
+        // fontSize و width در world نوشته می‌شوند؛ چون world = img * fitScale،
+        // متن هم مثل خودِ موکاپ با اندازهٔ پنجره هم‌نسبت می‌ماند و سایز چاپی‌اش ثابت می‌ماند
+        fontFamily: 'Vazirmatn', fontSize: this.FONT_IMG * this.fitScale, fill: '#111827',
         width: (this.model.mockup.printRect.w * this.fitScale) * 0.85,
         textAlign: isRTLText(text) ? 'right' : 'left',
         direction: isRTLText(text) ? 'rtl' : 'ltr',
@@ -526,16 +593,18 @@ const EditorEngine = {
   // فقط ناحیه‌ی «فضای چاپ» روی بوم خروجی نگاشت می‌شود؛ هیچ برشی (از جمله برش دوربین) اعمال نمی‌شود.
   exportPrint(opts = {}) {
     const m = this.model.mockup;
-    const boxW = m.printRect.w * this.fitScale, boxH = m.printRect.h * this.fitScale;
+    // world → چاپ: تنها تبدیلِ لازم. چون fitScale در geometryِ world پخته شده و
+    // viewport zoom (زوم کاربر) اصلاً در این مسیر وارد نمی‌شود، فایل چاپ هم با
+    // پنجرهٔ بزرگ/کوچک و هم با هر زومی دقیقاً یک اندازه می‌ماند.
+    const box = this.printBox();
+    const boxW = box.width, boxH = box.height;
     const mmToPx = opts.dpi || m.dpi || 300; // پیکسل بر اینچ
     const pxW = Math.round(m.printMm.w * mmToPx / 25.4);
     const pxH = Math.round(m.printMm.h * mmToPx / 25.4);
     const sc = pxW / boxW;
     const exp = new fabric.StaticCanvas(null, { width: pxW, height: pxH });
     exp.backgroundColor = opts.bg || '#ffffff';
-    const ox = this.offset?.x || 0, oy = this.offset?.y || 0;
-    const boxLeft = m.printRect.x * this.fitScale + ox;
-    const boxTop = m.printRect.y * this.fitScale + oy;
+    const boxLeft = box.left, boxTop = box.top;
     const clones = this.layers().map(o => EditorEngine.cloneAsync(o).then(c => {
       c.set({ left: c.left - boxLeft, top: c.top - boxTop });
       exp.add(c);
@@ -569,17 +638,31 @@ const EditorEngine = {
     return tmp.toDataURL({ format: 'jpeg', quality: 0.85 });
   },
 
-  /* ---------- سریال‌سازی ---------- */
+  /* ---------- سریال‌سازی ----------
+     نسخهٔ ۲: مختصاتِ طرح در «فضای تصویر» (img) ذخیره می‌شود، نه world.
+     world به دو چیز وابسته است که ثباتی ندارند: اندازهٔ پنجره (fitScale) و
+     وسط‌چینی (offset). برای همین پیش‌نویسِ ذخیره‌شده در یک سایزِ پنجره، در
+     سایزِ دیگر جابه‌جا می‌شد. فیلدهای v1 هم حفظ شده‌اند تا مصرف‌کننده‌های
+     دیگر (متای سفارش، history، نسخه‌های قبلی) نشکنند. */
   serialize() {
-    const layers = this.layers().map(o => ({
-      name: o.name, type: o.type, left: o.left, top: o.top,
-      scaleX: o.scaleX, scaleY: o.scaleY, angle: o.angle,
-      ...(o.type === 'textbox' ? { text: o.text, fontSize: o.fontSize, fontFamily: o.fontFamily, fill: o.fill, fontWeight: o.fontWeight, textAlign: o.textAlign, direction: o.direction, width: o.width } : {}),
-      src: o._originalElement ? o._originalElement.currentSrc || o._originalElement.src : (o.getSrc && o.getSrc()),
-      modelId: this.model.id,
-      fitScale: this.fitScale,
-      version: 1,
-    }));
+    const s = this.fitScale || 1;
+    const layers = this.layers().map(o => {
+      const p = this.toImg(o.left, o.top);
+      return {
+        name: o.name, type: o.type, left: o.left, top: o.top,
+        scaleX: o.scaleX, scaleY: o.scaleY, angle: o.angle,
+        originX: o.originX, originY: o.originY,
+        ...(o.type === 'textbox' ? { text: o.text, fontSize: o.fontSize, fontFamily: o.fontFamily, fill: o.fill, fontWeight: o.fontWeight, textAlign: o.textAlign, direction: o.direction, width: o.width } : {}),
+        src: o._originalElement ? o._originalElement.currentSrc || o._originalElement.src : (o.getSrc && o.getSrc()),
+        modelId: this.model.id,
+        fitScale: s,
+        // v2 — img space
+        ix: p.x, iy: p.y,
+        iScaleX: (o.scaleX || 1) / s, iScaleY: (o.scaleY || 1) / s,
+        ...(o.type === 'textbox' ? { iFontSize: (o.fontSize || 0) / s, iWidth: (o.width || 0) / s } : {}),
+        version: 2,
+      };
+    });
     return JSON.stringify(layers);
   },
 
@@ -589,6 +672,9 @@ const EditorEngine = {
       this._clearKeepBg();
       this.renderGuides(this.model.mockup.printRect, this.model.mockup.camRects);
       const self = this;
+      // v2 → world (img*fit + offset)؛ v1 → همان مختصات worldِ ذخیره‌شده
+      const pos = L => (L.version >= 2 && typeof L.ix === 'number') ? this.toWorld(L.ix, L.iy) : { x: L.left, y: L.top };
+      const isV2 = L => L.version >= 2 && typeof L.ix === 'number';
       let pending = layers.length;
       const ordered = []; // آبجکت‌ها با ایندکس سریال‌شده — برای بازسازی دقیق ترتیب لایه‌ها
       const done = () => {
@@ -603,18 +689,29 @@ const EditorEngine = {
       if (!pending) { window.dispatchEvent(new CustomEvent('editor:changed')); return; }
       layers.forEach((L, i) => {
         if (L.modelId !== self.model.id) { done(); return; }
+        const v2 = isV2(L), f = v2 ? (self.fitScale || 1) : 1;  // ضرایب v2 در img space‌اند
+        const p = pos(L);
+        const base = {
+          left: p.x, top: p.y, angle: L.angle, name: L.name,
+          scaleX: v2 ? (L.iScaleX ?? 1) * f : L.scaleX,
+          scaleY: v2 ? (L.iScaleY ?? 1) * f : L.scaleY,
+        };
+        if (L.originX) base.originX = L.originX;   // بدون origin، مختصاتِ center به لبه تفسیر می‌شد
+        if (L.originY) base.originY = L.originY;
         if (L.type === 'textbox') {
           const t = new fabric.Textbox(L.text, {
-            left: L.left, top: L.top, scaleX: L.scaleX, scaleY: L.scaleY, angle: L.angle,
-            fontFamily: L.fontFamily, fontSize: L.fontSize, fill: L.fill, fontWeight: L.fontWeight || 'normal',
-            textAlign: L.textAlign, direction: L.direction, width: L.width, splitByGrapheme: true, name: L.name,
+            ...base,
+            fontFamily: L.fontFamily, fill: L.fill, fontWeight: L.fontWeight || 'normal',
+            textAlign: L.textAlign, direction: L.direction, splitByGrapheme: true,
+            fontSize: v2 ? (L.iFontSize ?? 20) * f : L.fontSize,
+            width: Math.max(10, v2 ? (L.iWidth ?? 0) * f : L.width),
           });
           self.canvas.add(t);
           ordered.push({ o: t, i });
           done();
         } else if (L.src) {
           fabric.Image.fromURL(L.src, img => {
-            img.set({ left: L.left, top: L.top, scaleX: L.scaleX, scaleY: L.scaleY, angle: L.angle, name: L.name });
+            img.set(base);
             self.canvas.add(img);
             ordered.push({ o: img, i });
             done();
