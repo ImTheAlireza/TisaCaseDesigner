@@ -181,7 +181,10 @@ class Case_Designer_Updater {
 	}
 
 	/**
-	 * پوشهٔ داخل zip گیت‌هاب اسمش با پوشهٔ نصب‌شده فرق دارد (TisaCaseDesigner-1.6.5).
+	 * پوشهٔ داخل zip گیت‌هاب اسمش همیشه با پوشهٔ نصب‌شده فرق دارد: zipball یک
+	 * پوشهٔ بالاسری به شکل «ImTheAlireza-TisaCaseDesigner-<sha>» می‌سازد (اسمش هر
+	 * ریلیز عوض می‌شود) و بایگانی تگ «TisaCaseDesigner-1.6.5». پس هیچ اسمی در کد
+	 * hard-code نشده؛ مبنا نامِ پوشهٔ «خودی» است که از وردپرس خوانده می‌شود.
 	 * وردپرس موقع به‌روزرسانیِ افزونه مقصد را این‌طور می‌سازد:
 	 *
 	 *     if ( in_array( $destination, $protected_directories, true ) ) {
