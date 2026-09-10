@@ -78,7 +78,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<div id="inspectorPanel" class="ed-inspector"></div>
 				<div id="canvasHolder">
 					<canvas id="designCanvas"></canvas>
-					<div class="guide-hint" id="guideHint"><span class="dot-hint"></span><span><?php esc_html_e( 'کادرهای راهنما', 'case-designer' ); ?></span></div>
 				</div>
 				<div class="ed-statusbar">
 					<span class="ed-hint-chip">Space = <?php esc_html_e( 'جابه‌جایی صفحه', 'case-designer' ); ?></span>

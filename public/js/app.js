@@ -375,24 +375,11 @@ const EditorApp = {
       DB.save(db);
       this.E.setGuidesVisible(db.settings.guidesOn);
       $('#btnGuides').classList.toggle('on', db.settings.guidesOn);
-      this.updateGuideHint();
     });
     $('#btnPreview').addEventListener('click', () => this.openPreviewModal());
     $('#btnCheckout').addEventListener('click', () => this.openCartModal());
     $('#btnDraft').addEventListener('click', () => { this.saveDraft(); toast('طرح ذخیره شد <i class="fa-solid fa-floppy-disk"></i>'); });
     $('#btnGuides').classList.toggle('on', DB.get().settings.guidesOn !== false);
-    this.updateGuideHint();
-  },
-
-  updateGuideHint() {
-    const on = DB.get().settings.guidesOn !== false;
-    const hint = $('#guideHint');
-    if (hint) {
-      hint.querySelector('.dot-hint').style.background = on ? 'var(--brand)' : 'var(--ink3)';
-      hint.querySelector('span:last-child').textContent = on
-        ? 'کادرهای راهنما: فضای چاپ و فضای دوربین — فقط راهنما؛ طرح روی دوربین هم قابل قرارگیری است'
-        : 'کادرهای راهنما غیرفعال شده‌اند';
-    }
   },
 
   bindGlobalKeys() {

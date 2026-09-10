@@ -34,8 +34,27 @@ const EditorEngine = {
   fitScale: 1,                    // img → world
   offset: { x: 0, y: 0 },         // وسط‌چینی موکاپ در world
   MARGIN: 0.94,                   // فاصلهٔ امن دور موکاپ تا به لبهٔ بوم نچسبد
+  SAFE_GAP: 12,                   // فاصلهٔ موکاپ از لبهٔ پایینِ نوار شناور
+  SAFE_TOP_MAX: 240,              // سقف محافظ: بوم بیشتر از این کم نمی‌شود
   FONT_IMG: 44,                   // سایز پیش‌فرض متن، در فضای img
   ZOOM_MIN: 0.4, ZOOM_MAX: 6,     // سقف/کف زوم کاربر (نسبی به فیت)
+
+  /* چقدر نوار ابزار شناور (.ed-float) روی ناحیهٔ بوم آمده است؟
+     این نوار position:absolute است، پس موکاپِ تمام‌قد سرِ گوشی را زیرش می‌برد.
+     عدد ثابت نمی‌گذاریم — از DOM خوانده می‌شود تا با هر عرض پنجره، زوم مرورگر،
+     DPR کسری و wrap‌شدن دکمه‌ها درست بماند. */
+  safeTop() {
+    const holder = document.getElementById('canvasHolder');
+    const bar = document.querySelector && document.querySelector('#stage .ed-float');
+    if (!holder || !bar || !holder.getBoundingClientRect || !bar.getBoundingClientRect) return 0;
+    const hRect = holder.getBoundingClientRect(), bRect = bar.getBoundingClientRect();
+    // NaN-safe: محیط‌هایی که rect ناقص می‌دهند (iframe/استاب/قالبِ عجیب) نباید
+    // چیدمان را NaN کنند — در آن حالت فقط حریم را صفر می‌گیریم
+    if (!(bRect.height > 0) || !(bRect.top <= hRect.bottom)) return 0;
+    const over = bRect.bottom - hRect.top;
+    if (!(over > 0)) return 0;                                          // نوار بالای بوم است
+    return Math.min(over + this.SAFE_GAP, this.SAFE_TOP_MAX);
+  },
 
   /* اندازه‌گیری ناحیهٔ بوم — تنها منبع.
      getBoundingClientRect به‌جای clientWidth: با زومِ غیرصحیح مرورگر (۵۰٪/۱۵۰٪
@@ -53,13 +72,19 @@ const EditorEngine = {
     };
   },
 
-  /* تنها جایی که چیدمان محاسبه می‌شود: ابعاد بوم → { s, x, y } */
-  _layoutFor(w, h) {
+  /* تنها جایی که چیدمان محاسبه می‌شود: ابعاد بوم → { s, x, y }
+     نکته: اینسپکتور (#inspectorPanel) هم حالا بالا-راست شناور است ولی عمداً در
+     حریم بالا حساب نمی‌شود — فقط هنگام انتخاب لایه ظاهر می‌شود و اگر آن را
+     حساب کنیم، با هر کلیک روی لایه موکاپ پر می‌کرد و جابه‌جا می‌شد. */
+  _layoutFor(w, h, top) {
     const m = this.model && this.model.mockup;
     if (!m || !(m.imgW > 0) || !(m.imgH > 0) || !(w > 0) || !(h > 0)) return null;
-    const s = Math.min(w / m.imgW, h / m.imgH) * this.MARGIN;
+    if (top == null) top = this.safeTop();            // حریم نوار ابزار شناور
+    const availH = Math.max(80, h - top);
+    const s = Math.min(w / m.imgW, availH / m.imgH) * this.MARGIN;
     if (!isFinite(s) || s <= 0) return null;
-    return { s, x: (w - m.imgW * s) / 2, y: (h - m.imgH * s) / 2 };
+    // x از عرض کامل بوم (موکاپ افقی وسط می‌ماند)؛ y از فضای خالیِ زیر نوار
+    return { s, x: (w - m.imgW * s) / 2, y: top + (availH - m.imgH * s) / 2, top };
   },
   toWorld(x, y) {                 // img → world
     const s = this.fitScale, o = this.offset || { x: 0, y: 0 };
@@ -383,13 +408,17 @@ const EditorEngine = {
     if (!this.canvas) return;
     const { w, h } = this.measure();
     if (w < 100 || h < 100) return;
-    // اگر اندازه عوض نشده، هیچ کاری نکن — از رانش اعشاریِ لایه‌ها در هر callback جلوی ResizeObserver
-    // (تلورانس ۰٫۵px: با DPR کسری، ناوبک هر بار کسرِ خیلی ریز متفاوتی می‌دهد)
-    if (this._lastW != null && Math.abs(this._lastW - w) < .5 && Math.abs(this._lastH - h) < .5) return;
-    this._lastW = w; this._lastH = h;
+    // اگر اندازه و حریم بالا عوض نشده، هیچ کاری نکن — از رانش اعشاریِ لایه‌ها در هر
+    // callback جلوی ResizeObserver جلوگیری می‌کند (تلورانس ۰٫۵px: با DPR کسری،
+    // ناوبک هر بار کسرِ خیلی ریز متفاوتی می‌دهد). حریم بالا هم در کلید است، چون
+    // wrap‌شدن نوار ابزار می‌تواند بوم را بدون تغییر اندازهٔ هولدر جابه‌جا کند.
+    const safe = this.safeTop();
+    if (this._lastW != null && Math.abs(this._lastW - w) < .5 && Math.abs(this._lastH - h) < .5
+        && Math.abs((this._lastSafe || 0) - safe) < 1) return;
+    this._lastW = w; this._lastH = h; this._lastSafe = safe;
     const m = this.model?.mockup;
     if (!m || !m.imgW) { this.canvas.setDimensions({ width: w, height: h }); return; }
-    const L = this._layoutFor(w, h);
+    const L = this._layoutFor(w, h, safe);
     if (!L) return;
     // چیدمان «قبلی» صریح نگه داشته می‌شود تا نگاشت لایه‌ها به state در حال تغییر وابسته نباشد
     const oldFit = this.fitScale > 0 ? this.fitScale : L.s, newFit = L.s;
