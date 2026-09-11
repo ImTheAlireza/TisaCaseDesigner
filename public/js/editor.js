@@ -529,12 +529,13 @@ const EditorEngine = {
       canvas.renderAll();
       return Promise.resolve(canvas);
     }
-    const promises = layers.map(l => this._cloneToImgSpace(l).then(c => {
-      // برای وضوح متن، کش را خاموش می‌کنیم
-      c.set({ objectCaching: false });
-      canvas.add(c);
-    }));
-    return Promise.all(promises).then(() => {
+    // باگ قبلی: cloneAsync نامرتب بود و لایه‌ها با ترتیب تصادفی add می‌شدند → متن می‌رفت زیر عکس
+    // الان اول همه را clone می‌کنیم، بعد به ترتیب اصلی (پایین به بالا) اضافه می‌کنیم تا ترتیب لایه‌ها حفظ شود
+    return Promise.all(layers.map(l => this._cloneToImgSpace(l))).then(clones => {
+      clones.forEach(c => {
+        c.set({ objectCaching: false });
+        canvas.add(c);
+      });
       canvas.renderAll();
       return canvas;
     });
@@ -672,11 +673,13 @@ const EditorEngine = {
     const worldLeft = srcRect.x * this.fitScale + (this.offset?.x || 0);
     const worldTop = srcRect.y * this.fitScale + (this.offset?.y || 0);
     const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-    const clones = this.layers().map(o => EditorEngine.cloneAsync(o).then(c => {
-      c.set({ left: c.left - worldLeft, top: c.top - worldTop, objectCaching: false });
-      exp.add(c);
-    }));
-    return Promise.all([fontsReady, Promise.all(clones)]).then(() => {
+    // باگ ترتیب لایه: cloneAsync نامرتب بود و ممکن بود متن زیر عکس برود
+    // اول همه را clone می‌کنیم، بعد به ترتیب اضافه می‌کنیم
+    return Promise.all([fontsReady, Promise.all(this.layers().map(o => EditorEngine.cloneAsync(o)))]).then(([, cloned]) => {
+      cloned.forEach(c => {
+        c.set({ left: c.left - worldLeft, top: c.top - worldTop, objectCaching: false });
+        exp.add(c);
+      });
       exp.setZoom(sc);
       exp.renderAll();
       return { dataUrl: exp.toDataURL({ format: 'png' }), width: pxW, height: pxH, scale: sc, mmToPx, mmW, mmH, usingMain: !!hasMain };
