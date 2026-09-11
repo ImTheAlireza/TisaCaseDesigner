@@ -4,20 +4,17 @@
  * ------------------------------------------------------------
  * مشکل: وردپرس هویت یک افزونه را با «مسیر پوشه‌اش» می‌شناسد.
  * اگر پوشهٔ داخل zip با نصب موجود فرق داشته باشد، وردپرس افزونهٔ «دوم» می‌سازد.
- * تا قبل از 1.6.5 هر بار zip تازه آپلود می‌شد و نام پوشه‌اش فرق داشت،
- * وردپرس نسخهٔ دوم می‌ساخت و Delete هم uninstall.php را اجرا و دیتا را پاک می‌کرد.
  *
  * این کلاس:
  *  ۱) نسخهٔ آخر Release گیت‌هاب را می‌خواند (کش ۱۲ ساعته)
  *  ۲) دکمهٔ «به‌روزرسانی» در پیشخوان را نشان می‌دهد
- *  ۳) موقع به‌روزرسانی یا نصب دستی، پوشهٔ داخل zip را به نام پوشهٔ فعلی (یا به نام بدون ورژن) بازنویسی می‌کند
- *     تا افزونهٔ دوم ساخته نشود.
+ *  ۳) موقع به‌روزرسانی یا نصب دستی، پوشهٔ داخل zip را به نام پوشهٔ فعلی
+ *     یا به نام بدون ورژن TisaCaseDesigner بازنویسی می‌کند تا افزونهٔ دوم ساخته نشود.
  *
- * نکتهٔ مهم برای درخواست کاربر: پوشهٔ نهایی باید فقط «اسم» باشد، بدون ورژن.
- *  - zipای که ما می‌سازیم (case-designer-*.zip) ریشه‌اش TisaCaseDesigner/ است (بدون ورژن)
+ * درخواست کاربر: پوشهٔ نهایی فقط «اسم» باشد، بدون ورژن.
+ *  - zipای که ما می‌سازیم ریشه‌اش TisaCaseDesigner/ است (بدون ورژن)
  *  - اگر کاربر بایگانی خودکار گیت‌هاب (TisaCaseDesigner-1.6.7.zip) را آپلود کند،
- *    این فیلتر آن را هم به پوشهٔ موجود یا به TisaCaseDesigner بازنویسی می‌کند
- *    تا پوشهٔ ورژن‌دار جدید ساخته نشود.
+ *    این فیلتر آن را هم به پوشهٔ موجود یا به TisaCaseDesigner بازنویسی می‌کند.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -26,12 +23,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Case_Designer_Updater {
 
-	const REPO       = 'ImTheAlireza/TisaCaseDesigner';
-	const SLUG       = 'case-designer';
-	const CANONICAL  = 'TisaCaseDesigner'; // پوشهٔ بدون ورژن که کاربر می‌خواهد
-	const CACHE_KEY  = 'case_designer_release';
-	const CACHE_TTL  = 12 * HOUR_IN_SECONDS;
-	const FAIL_TTL   = 30 * MINUTE_IN_SECONDS;
+	const REPO      = 'ImTheAlireza/TisaCaseDesigner';
+	const SLUG      = 'case-designer';
+	const CANONICAL = 'TisaCaseDesigner'; // پوشهٔ بدون ورژن
+	const CACHE_KEY = 'case_designer_release';
+	const CACHE_TTL = 12 * HOUR_IN_SECONDS;
+	const FAIL_TTL  = 30 * MINUTE_IN_SECONDS;
 
 	public static function init() {
 		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
@@ -158,9 +155,8 @@ class Case_Designer_Updater {
 
 	/**
 	 * مهم‌ترین فیلتر: پوشهٔ داخل zip را به پوشهٔ درست بازنویسی می‌کند
-	 * - برای upgrade: پوشهٔ موجود (هرچه باشد) حفظ می‌شود تا افزونهٔ دوم ساخته نشود
-	 * - برای install دستی: اگر افزونه قبلاً نصب است، همان پوشهٔ قبلی؛ وگرنه TisaCaseDesigner (بدون ورژن)
-	 * - اگر zip از بایگانی خودکار گیت‌هاب باشد (TisaCaseDesigner-1.6.7)، باز هم به بدون ورژن تبدیل می‌شود
+	 * - upgrade: پوشهٔ موجود حفظ می‌شود، اگر ورژن‌دار بود به TisaCaseDesigner مهاجرت می‌کند
+	 * - install دستی: اگر افزونه قبلاً نصب است، همان پوشه؛ وگرنه TisaCaseDesigner
 	 */
 	public static function match_source_folder( $source, $remote_source, $upgrader, $hook_extra ) {
 		if ( is_wp_error( $source ) ) {
@@ -182,7 +178,6 @@ class Case_Designer_Updater {
 			return $source;
 		}
 
-		// آیا این zip مال ماست؟ (case-designer.php داخلش هست)
 		$has_our_file = $wp_filesystem->exists( trailingslashit( $source ) . 'case-designer.php' );
 		if ( ! $has_our_file ) {
 			return $source;
@@ -190,33 +185,25 @@ class Case_Designer_Updater {
 
 		$want = '';
 
-		// حالت به‌روزرسانی (upgrade) — hook_extra['plugin'] دارد
 		if ( ! empty( $hook_extra['plugin'] ) ) {
+			// upgrade
 			if ( $hook_extra['plugin'] !== self::plugin_id() ) {
-				return $source; // افزونهٔ دیگر
+				return $source;
 			}
 			$want = basename( dirname( self::plugin_id() ) );
-
-			// اگر پوشهٔ فعلی ورژن‌دار است (مثل TisaCaseDesigner-1.6.6) و کاربر درخواست پوشهٔ بدون ورژن کرده،
-			// به پوشهٔ بدون ورژن مهاجرت می‌کنیم تا از این به بعد ورژن در نام نباشد.
-			// برای اینکه دیتا از دست نرود، اول به canonical تبدیل می‌کنیم.
-			if ( preg_match( '/^'.preg_quote(self::CANONICAL, '/').'-\d+\.\d+/', $want ) || preg_match( '/-\\d+\\.\\d+\\.\\d+$/', $want ) ) {
-				// اگر قبلاً پوشهٔ canonical وجود دارد، همان را می‌خواهیم تا رویش بریزد
-				// وگرنه خود canonical
+			// اگر پوشهٔ فعلی ورژن‌دار است، به بدون ورژن مهاجرت کن
+			if ( preg_match( '/^' . preg_quote( self::CANONICAL, '/' ) . '-\d+\.\d+/', $want ) || preg_match( '/-\d+\.\d+(\.\d+)?$/', $want ) ) {
 				$want = self::CANONICAL;
 			}
 		} else {
-			// حالت نصب دستی (install) — plugin در hook_extra نیست
-			// اگر افزونه قبلاً نصب است (فعال یا غیرفعال)، همان پوشه را حفظ کن تا تکراری نشود
+			// install دستی
 			$existing_id = self::plugin_id();
 			if ( $existing_id && $wp_filesystem->exists( WP_PLUGIN_DIR . '/' . $existing_id ) ) {
 				$want = basename( dirname( $existing_id ) );
-				// اگر پوشهٔ موجود ورژن‌دار است، به بدون ورژن مهاجرت کن
-				if ( preg_match( '/-\\d+\\.\\d+/', $want ) ) {
+				if ( preg_match( '/-\d+\.\d+/', $want ) ) {
 					$want = self::CANONICAL;
 				}
 			} else {
-				// نصب تازه — پوشهٔ بدون ورژن
 				$want = self::CANONICAL;
 			}
 		}
@@ -262,10 +249,7 @@ class Case_Designer_Updater {
 				}
 			}
 		}
-		// برای install دستی، $paths خالی است — باز هم کش را پاک می‌کنیم
 		if ( $paths && ! in_array( self::plugin_id(), $paths, true ) ) {
-			// اما اگر هیچ‌کدام مال ما نبود و has_our_file هم نبود، کاری نداریم
-			// برای اطمینان، اگر پوشهٔ canonical تازه ساخته شده، باز هم کش را پاک کن
 			if ( ! file_exists( WP_PLUGIN_DIR . '/' . self::CANONICAL . '/case-designer.php' ) ) {
 				return;
 			}
@@ -273,7 +257,6 @@ class Case_Designer_Updater {
 		delete_transient( self::CACHE_KEY );
 		delete_site_transient( 'update_plugins' );
 
-		// پاکسازی پوشه‌های قدیمی ورژن‌دار بعد از مهاجرت به بدون ورژن
 		global $wp_filesystem;
 		if ( ! $wp_filesystem ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -284,14 +267,18 @@ class Case_Designer_Updater {
 			$list = $wp_filesystem->dirlist( $plugins_dir );
 			if ( is_array( $list ) ) {
 				foreach ( $list as $name => $info ) {
-					if ( 'd' !== $info['type'] ) continue;
-					if ( $name === self::CANONICAL ) continue;
-					if ( $name === basename( dirname( self::plugin_id() ) ) ) continue;
-					// الگوی ورژن‌دار: TisaCaseDesigner-1.6.x یا case-designer-1.6.x
-					if ( preg_match( '/^(TisaCaseDesigner|case-designer)-\\d+\\.\\d+/', $name ) ) {
+					if ( 'd' !== $info['type'] ) {
+						continue;
+					}
+					if ( $name === self::CANONICAL ) {
+						continue;
+					}
+					if ( $name === basename( dirname( self::plugin_id() ) ) ) {
+						continue;
+					}
+					if ( preg_match( '/^(TisaCaseDesigner|case-designer)-\d+\.\d+/', $name ) ) {
 						$maybe = trailingslashit( $plugins_dir ) . $name . '/case-designer.php';
 						if ( $wp_filesystem->exists( $maybe ) ) {
-							// فقط اگر پوشهٔ canonical الان موجود است، قدیمی‌ها را پاک کن
 							if ( $wp_filesystem->exists( trailingslashit( $plugins_dir ) . self::CANONICAL . '/case-designer.php' ) ) {
 								$wp_filesystem->delete( trailingslashit( $plugins_dir ) . $name, true );
 							}
@@ -328,7 +315,6 @@ class Case_Designer_Updater {
 	}
 }
 
-// init در case-designer.php صدا زده می‌شود، اینجا هم برای سازگاری با نسخه‌های قدیمی
 if ( function_exists( 'add_filter' ) ) {
 	Case_Designer_Updater::init();
 }
