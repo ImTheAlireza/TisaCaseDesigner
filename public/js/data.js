@@ -6,6 +6,7 @@ const DB_KEY  = 'caseDesigner.v2';
 const CART_KEY = 'caseDesigner.cart.v2';
 
 const PRINT_RECT = { x: 110, y: 120, w: 580, h: 1200, radius: 30 }; // فضای چاپ پیش‌فرض (مختصات موکاپ 800×1500) + شعاع گردی گوشه‌ها
+const MAIN_RECT = { x: 40, y: 50, w: 720, h: 1400, radius: 90 }; // فریم اصلی طرح — دقیقاً ابعاد گوشی روی موکاپ
 const CAM_RECTS = {
   iphone:  [{ x: 130, y: 150, w: 180, h: 180, r: 24 }],
   samsung: [{ x: 135, y: 150, w: 160, h: 330, r: 26 }],
@@ -61,9 +62,12 @@ function generateMockup(style, c1, c2, label) {
     img: 'data:image/svg+xml;utf8,' + encodeURIComponent(svg),
     style,
     printRect: { ...PRINT_RECT },
+    mainRect: { ...MAIN_RECT },
     camRects: CAM_RECTS[style].map(c => ({ ...c })),
-    printMm: { w: 66, h: 138 },   // ابعاد واقعی چاپ روی قاب (میلی‌متر)
+    printMm: { w: 66, h: 138 },   // ابعاد واقعی چاپ روی قاب (میلی‌متر) — مربوط به فضای چاپ
+    mainMm: { w: 74, h: 148 },    // ابعاد فریم اصلی (کل گوشی) — برای برش فایل نهایی
     dpi: 300,
+    mainColor: '#10b981',
   };
 }
 
@@ -199,7 +203,7 @@ const DB = {
       settings: {
         storeName: 'تیساکیس', currency: 'تومان', defaultDpi: 300,
         guidesOn: true, guidesNote: 'برش دوربین فقط در پیش‌نمایش اعمال می‌شود؛ فایل ارسالی به چاپخانه بدون برش ذخیره می‌گردد.',
-        printColor: '#304ffe', camColor: '#ed1944',
+        printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
       },
       brands, models,
       stickers: STICKERS.map(s => ({ id: s.id, name: s.name, url: s.url })),
@@ -277,7 +281,7 @@ const CaseDesignerDB = (function () {
       storeName: CD.storeName || 'فروشگاه',
       currency: CD.currency || 'تومان',
       defaultDpi: 300, guidesOn: true, guidesNote: DEFAULT_GUIDES_NOTE,
-      printColor: '#304ffe', camColor: '#ed1944',
+      printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
     }, CD.settings || {});
   }
 
@@ -301,9 +305,12 @@ const CaseDesignerDB = (function () {
             img,
             style,
             printRect: Object.assign({ x: 110, y: 120, w: 580, h: 1200, radius: 0 }, m.printRect || {}),
+            mainRect: Object.assign({ x: 40, y: 50, w: 720, h: 1400, radius: 90 }, m.mainRect || {}),
             camRects: (m.camRects || []).map(c => ({ x: +c.x, y: +c.y, w: +c.w, h: +c.h, r: +c.r || 0 })),
             printMm: m.printMm || { w: 66, h: 138 },
+            mainMm: m.mainMm || { w: 74, h: 148 },
             dpi: m.dpi || 300,
+            mainColor: m.mainColor || '#10b981',
           },
         };
       }),

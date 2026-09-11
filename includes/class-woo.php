@@ -28,6 +28,12 @@ class Case_Designer_Woo {
 		// دکمه‌ی «طراحی قاب» روی صفحه‌ی محصول
 		add_action( 'woocommerce_after_add_to_cart_button', array( __CLASS__, 'designer_button' ) );
 
+		// متاباکس «قاب قابل طراحی» در صفحه‌ی محصول
+		add_action( 'add_meta_boxes', array( __CLASS__, 'add_product_metabox' ) );
+		add_action( 'save_post_product', array( __CLASS__, 'save_product_metabox' ), 10, 2 );
+		add_action( 'woocommerce_product_options_general_product_data', array( __CLASS__, 'woo_product_checkbox' ) );
+		add_action( 'woocommerce_process_product_meta', array( __CLASS__, 'woo_product_checkbox_save' ) );
+
 		// نمایش جزئیات طراحی در سبد خرید و چک‌اوت
 		add_filter( 'woocommerce_get_item_data', array( __CLASS__, 'cart_item_data' ), 10, 2 );
 
@@ -41,6 +47,52 @@ class Case_Designer_Woo {
 
 		// اندپوینت افزودن به سبد با متادیتای طراحی
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_add_to_cart' ) );
+	}
+
+	public static function add_product_metabox() {
+		add_meta_box(
+			'case_designable_box',
+			__( 'قاب‌ساز تیساکیس', 'case-designer' ),
+			array( __CLASS__, 'render_product_metabox' ),
+			'product',
+			'side',
+			'default'
+		);
+	}
+
+	public static function render_product_metabox( $post ) {
+		$val = get_post_meta( $post->ID, '_case_designable', true );
+		wp_nonce_field( 'case_designable_nonce', 'case_designable_nonce_field' );
+		echo '<label><input type="checkbox" name="_case_designable" value="yes" ' . checked( $val, 'yes', false ) . '> ' . esc_html__( 'این محصول قاب قابل طراحی است — دکمه «طراحی قاب» نمایش داده شود', 'case-designer' ) . '</label>';
+		echo '<p class="description">' . esc_html__( 'بعد از فعال‌سازی، در صفحه محصول دکمه طراحی به صفحه ادیتور می‌رود.', 'case-designer' ) . '</p>';
+	}
+
+	public static function save_product_metabox( $post_id, $post ) {
+		if ( ! isset( $_POST['case_designable_nonce_field'] ) || ! wp_verify_nonce( $_POST['case_designable_nonce_field'], 'case_designable_nonce' ) ) {
+			return;
+		}
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+		$val = isset( $_POST['_case_designable'] ) && 'yes' === $_POST['_case_designable'] ? 'yes' : 'no';
+		update_post_meta( $post_id, '_case_designable', $val );
+	}
+
+	// برای سازگاری با تب «عمومی» ووکامرس
+	public static function woo_product_checkbox() {
+		woocommerce_wp_checkbox( array(
+			'id'          => '_case_designable',
+			'label'       => __( 'قاب قابل طراحی', 'case-designer' ),
+			'description' => __( 'دکمه «طراحی قاب» در صفحه محصول نمایش داده شود', 'case-designer' ),
+		) );
+	}
+
+	public static function woo_product_checkbox_save( $post_id ) {
+		$val = isset( $_POST['_case_designable'] ) ? 'yes' : 'no';
+		update_post_meta( $post_id, '_case_designable', $val );
 	}
 
 	/** دکمه‌ی ورود به ادیتور در صفحه‌ی محصول */

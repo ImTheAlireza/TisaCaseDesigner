@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Case_Designer_CPT {
 
 	/** متادیتای موکاپ هر مدل (ذخیره‌شده به‌صورت JSON در post_meta) */
-	const META_MOCKUP = '_case_mockup'; // { img_id, printRect, camRects[], printMm{w,h}, dpi, printColor, camColor }
+	const META_MOCKUP = '_case_mockup'; // { img_id, printRect, mainRect, camRects[], printMm{w,h}, mainMm{w,h}, dpi, printColor, camColor, mainColor }
 
 	/** متادیتای عمومی مدل */
 	const META_BRAND   = '_case_brand';   // apple | samsung | xiaomi
@@ -88,12 +88,15 @@ class Case_Designer_CPT {
 		}
 		return wp_parse_args( $mockup, array(
 			'img_id'     => get_post_thumbnail_id( $model_id ),
-			'printRect'  => array( 'x' => 110, 'y' => 120, 'w' => 580, 'h' => 1200 ),
+			'printRect'  => array( 'x' => 110, 'y' => 120, 'w' => 580, 'h' => 1200, 'radius' => 30 ),
+			'mainRect'   => array( 'x' => 40, 'y' => 50, 'w' => 720, 'h' => 1400, 'radius' => 90 ),
 			'camRects'   => array(),
 			'printMm'    => array( 'w' => 66, 'h' => 138 ),
+			'mainMm'     => array( 'w' => 74, 'h' => 148 ),
 			'dpi'        => 300,
 			'printColor' => '#304ffe',
 			'camColor'   => '#ed1944',
+			'mainColor'  => '#10b981',
 		) );
 	}
 
