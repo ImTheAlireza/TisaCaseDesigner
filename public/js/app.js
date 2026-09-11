@@ -572,9 +572,9 @@ const EditorApp = {
   async openPreviewModal() {
     if (!this.E.layers().length) return toast('اول چیزی روی قاب قرار بدهید <i class="fa-regular fa-face-smile-wink"></i>', 'error');
     // پیش‌نمایش جدید: موکاپ همیشه وسط و بزرگ، همراه با ماسک‌ها
-    await this.E.enterPreview();
+    // فیکس باگ: قبلاً enterPreview لایه‌ها را پاک می‌کرد و exportPreviewThumb فقط موکاپ را برمی‌گرداند
+    // الان مستقیم از لایه‌های موجود thumb می‌گیریم (مثل مودال سبد خرید که درست کار می‌کرد)
     const thumb = await this.E.exportPreviewThumb(true);
-    this.E.exitPreview();
     const m = this.model;
     const veil = modal(`
       <div class="modal-head"><i class="fa-solid fa-eye"></i> پیش‌نمایش نهایی <button class="x" data-close><i class="fa-solid fa-xmark"></i></button></div>

@@ -178,18 +178,11 @@ const EditorEngine = {
       objs.push(camBox, camChip, camTxt);
     });
 
-    if (mr && mr.w > 0 && mr.h > 0) {
-      const mrR = (mr.radius || 0) * s;
-      const mainBox = new fabric.Rect({
-        left: mr.x * s + ox, top: mr.y * s + oy, width: mr.w * s, height: mr.h * s,
-        rx: mrR, ry: mrR,
-        fill: 'rgba(16,185,129,0.06)', stroke: mainColor, strokeWidth: 1.6,
-        strokeDashArray: [8, 5], selectable: false, evented: false, excludeFromExport: true,
-        objectCaching: false, name: '__guide_main__',
-      });
-      const [mainChip, mainTxt] = mkChip('فریم اصلی', mainColor, mainBox.left + inset, mainBox.top + mainBox.height + 6, false);
-      objs.push(mainBox, mainChip, mainTxt);
-    }
+    // فریم اصلی برای مشتری نمایش داده نمی‌شود (درخواست کاربر: فقط چاپ و دوربین)
+    // این کادر فقط برای محاسبهٔ برش نهایی فایل چاپ استفاده می‌شود و در پنل ادمین قابل تنظیم است
+    // اگر بخواهید دوباره نمایش داده شود، شرط زیر را فعال کنید:
+    // if (mr && mr.w > 0 && mr.h > 0) { ... }
+    void mr; void mainColor;
 
     if (!objs.length) return;
     const group = new fabric.Group(objs, { selectable: false, evented: false, excludeFromExport: true });
