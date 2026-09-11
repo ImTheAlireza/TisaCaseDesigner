@@ -492,16 +492,23 @@ const EditorEngine = {
   _cloneToImgSpace(worldObj) {
     return this.cloneAsync(worldObj).then(clone => {
       const p = this.toImg(clone.left, clone.top);
-      clone.set({
-        left: p.x,
-        top: p.y,
-        scaleX: (clone.scaleX || 1) / (this.fitScale || 1),
-        scaleY: (clone.scaleY || 1) / (this.fitScale || 1),
-      });
+      // برای عکس: مقیاس world شامل fitScale است، پس برای img باید تقسیم شود
+      // برای متن: مقیاس باید همان بماند، فقط fontSize و width تبدیل می‌شوند
+      // (باگ قبلی: متن با scale تقسیم‌شده ۲.۵ برابر بزرگ می‌شد و از کادر چاپ بیرون می‌افتاد و ماسک آن را حذف می‌کرد)
       if (clone.type === 'textbox') {
         clone.set({
+          left: p.x,
+          top: p.y,
+          // scale را دست نمی‌زنیم — همان مقیاس کاربر حفظ شود
           fontSize: (clone.fontSize || 20) / (this.fitScale || 1),
           width: Math.max(10, (clone.width || 10) / (this.fitScale || 1)),
+        });
+      } else {
+        clone.set({
+          left: p.x,
+          top: p.y,
+          scaleX: (clone.scaleX || 1) / (this.fitScale || 1),
+          scaleY: (clone.scaleY || 1) / (this.fitScale || 1),
         });
       }
       return clone;
@@ -556,7 +563,8 @@ const EditorEngine = {
   generateFullPreviewDataURL() {
     const m = this.model?.mockup;
     if (!m || !m.imgW || !this.mockupEl) return Promise.resolve('');
-    return this._createMaskedDesignCanvas().then(maskedDesign => {
+    const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    return fontsReady.then(() => this._createMaskedDesignCanvas()).then(maskedDesign => {
       if (!maskedDesign) return '';
       const W = m.imgW, H = m.imgH;
       const finalCanvas = document.createElement('canvas');
@@ -655,11 +663,12 @@ const EditorEngine = {
     exp.backgroundColor = opts.bg || '#ffffff';
     const worldLeft = srcRect.x * this.fitScale + (this.offset?.x || 0);
     const worldTop = srcRect.y * this.fitScale + (this.offset?.y || 0);
+    const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     const clones = this.layers().map(o => EditorEngine.cloneAsync(o).then(c => {
       c.set({ left: c.left - worldLeft, top: c.top - worldTop });
       exp.add(c);
     }));
-    return Promise.all(clones).then(() => {
+    return Promise.all([fontsReady, Promise.all(clones)]).then(() => {
       exp.setZoom(sc);
       exp.renderAll();
       return { dataUrl: exp.toDataURL({ format: 'png' }), width: pxW, height: pxH, scale: sc, mmToPx, mmW, mmH, usingMain: !!hasMain };

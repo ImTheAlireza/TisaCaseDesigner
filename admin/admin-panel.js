@@ -49,7 +49,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.8';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.9';
 
   /* ---------------- آیکن‌های SVG خطی درون‌خطی (stroke 2، سر گرد) ---------------- */
   const ICONS = {
