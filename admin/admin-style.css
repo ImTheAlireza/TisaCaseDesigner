@@ -7,10 +7,10 @@
    ============================================================ */
 
 /* ---------- فونت وزیرمتن (400/500/700/800) ---------- */
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../public/fonts/Vazirmatn-Regular.woff2') format('woff2'); }
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../public/fonts/Vazirmatn-Medium.woff2') format('woff2'); }
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../public/fonts/Vazirmatn-Bold.woff2') format('woff2'); }
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 800; font-display: swap; src: url('../public/fonts/Vazirmatn-Black.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/Vazirmatn-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/Vazirmatn-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/Vazirmatn-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 800; font-display: swap; src: url('../fonts/Vazirmatn-Black.woff2') format('woff2'); }
 
 /* ---------- توکن‌ها ---------- */
 /* ============================================================

@@ -16,7 +16,7 @@ const EditorEngine = {
   MARGIN: 0.94,
   SAFE_GAP: 12,
   SAFE_TOP_MAX: 240,
-  FONT_IMG: 44,
+  FONT_IMG: 64,
   ZOOM_MIN: 0.4, ZOOM_MAX: 6,
 
   safeTop() {
@@ -464,14 +464,18 @@ const EditorEngine = {
   },
 
   addText(text = 'متن خود را بنویسید', opts = {}) {
+    // متن پیش‌فرض تیره با حاشیه سفید برای دیده شدن روی هر موکاپ (تیره/روشن) و فایل چاپ سفید
     const t = new fabric.Textbox(text, {
       ...{
         originX: 'center', originY: 'center', name: uid(),
-        fontFamily: 'Vazirmatn', fontSize: this.FONT_IMG * this.fitScale, fill: '#111827',
+        fontFamily: 'Vazirmatn, Tahoma, sans-serif', fontSize: this.FONT_IMG * this.fitScale, fill: '#111827',
+        stroke: '#ffffff', strokeWidth: 0.8, paintFirst: 'stroke',
         width: (this.model.mockup.printRect.w * this.fitScale) * 0.85,
-        textAlign: isRTLText(text) ? 'right' : 'left',
+        textAlign: 'center',
         direction: isRTLText(text) ? 'rtl' : 'ltr',
-        splitByGrapheme: true, lineHeight: 1.3,
+        splitByGrapheme: false, lineHeight: 1.35,
+        objectCaching: false,
+        shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.18)', blur: 3, offsetX: 0, offsetY: 1 }),
       }, ...opts,
     });
     const c = this.center();
@@ -525,7 +529,11 @@ const EditorEngine = {
       canvas.renderAll();
       return Promise.resolve(canvas);
     }
-    const promises = layers.map(l => this._cloneToImgSpace(l).then(c => { canvas.add(c); }));
+    const promises = layers.map(l => this._cloneToImgSpace(l).then(c => {
+      // برای وضوح متن، کش را خاموش می‌کنیم
+      c.set({ objectCaching: false });
+      canvas.add(c);
+    }));
     return Promise.all(promises).then(() => {
       canvas.renderAll();
       return canvas;
@@ -665,7 +673,7 @@ const EditorEngine = {
     const worldTop = srcRect.y * this.fitScale + (this.offset?.y || 0);
     const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
     const clones = this.layers().map(o => EditorEngine.cloneAsync(o).then(c => {
-      c.set({ left: c.left - worldLeft, top: c.top - worldTop });
+      c.set({ left: c.left - worldLeft, top: c.top - worldTop, objectCaching: false });
       exp.add(c);
     }));
     return Promise.all([fontsReady, Promise.all(clones)]).then(() => {
@@ -679,25 +687,15 @@ const EditorEngine = {
     if (includeMockup) {
       return this.generateFullPreviewDataURL().then(url => {
         if (!url) return '';
-        return new Promise(res => {
-          const img = new Image();
-          img.onload = () => {
-            const c = document.createElement('canvas');
-            c.width = img.width; c.height = img.height;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, c.width, c.height);
-            ctx.drawImage(img, 0, 0);
-            res(c.toDataURL('image/jpeg', 0.85));
-          };
-          img.onerror = () => res(url);
-          img.src = url;
-        });
+        // برای وضوح متن، PNG بدون فشرده‌سازی JPEG استفاده می‌کنیم
+        // قبلاً JPEG 0.85 بود که متن فارسی را تار می‌کرد
+        return url;
       });
     } else {
       return this._createDesignCanvasImgSpace().then(canvas => {
         if (!canvas) return '';
-        return canvas.toDataURL({ format: 'jpeg', quality: 0.85 });
+        // PNG برای وضوح متن
+        return canvas.toDataURL({ format: 'png' });
       });
     }
   },
@@ -710,7 +708,7 @@ const EditorEngine = {
         name: o.name, type: o.type, left: o.left, top: o.top,
         scaleX: o.scaleX, scaleY: o.scaleY, angle: o.angle,
         originX: o.originX, originY: o.originY,
-        ...(o.type === 'textbox' ? { text: o.text, fontSize: o.fontSize, fontFamily: o.fontFamily, fill: o.fill, fontWeight: o.fontWeight, textAlign: o.textAlign, direction: o.direction, width: o.width } : {}),
+        ...(o.type === 'textbox' ? { text: o.text, fontSize: o.fontSize, fontFamily: o.fontFamily, fill: o.fill, stroke: o.stroke, strokeWidth: o.strokeWidth, fontWeight: o.fontWeight, textAlign: o.textAlign, direction: o.direction, width: o.width } : {}),
         src: o._originalElement ? o._originalElement.currentSrc || o._originalElement.src : (o.getSrc && o.getSrc()),
         modelId: this.model.id,
         fitScale: s,
@@ -755,8 +753,9 @@ const EditorEngine = {
         if (L.type === 'textbox') {
           const t = new fabric.Textbox(L.text, {
             ...base,
-            fontFamily: L.fontFamily, fill: L.fill, fontWeight: L.fontWeight || 'normal',
-            textAlign: L.textAlign, direction: L.direction, splitByGrapheme: true,
+            fontFamily: L.fontFamily || 'Vazirmatn, Tahoma, sans-serif', fill: L.fill || '#111827', stroke: L.stroke || null, strokeWidth: L.strokeWidth || 0, fontWeight: L.fontWeight || 'normal',
+            textAlign: 'center', direction: L.direction || (isRTLText(L.text) ? 'rtl' : 'ltr'), splitByGrapheme: false,
+            lineHeight: 1.35, objectCaching: false, paintFirst: L.stroke ? 'stroke' : 'fill',
             fontSize: v2 ? (L.iFontSize ?? 20) * f : L.fontSize,
             width: Math.max(10, v2 ? (L.iWidth ?? 0) * f : L.width),
           });

@@ -497,7 +497,9 @@ const EditorApp = {
     if (fontSel) fontSel.addEventListener('change', apply);
     if (sizeEl) sizeEl.addEventListener('change', apply);
     $$('#inspColors .swatch').forEach(s => s.addEventListener('click', () => {
-      o.set('fill', s.dataset.c);
+      // وقتی کاربر رنگ را عوض می‌کند، stroke را حذف می‌کنیم تا رنگ دقیقاً همان باشد که انتخاب کرده
+      // (متن پیش‌فرض با stroke سفید برای دیده شدن روی هر موکاپ است، ولی رنگ انتخابی کاربر بدون stroke)
+      o.set({ fill: s.dataset.c, stroke: null, shadow: null });
       this.E.canvas.requestRenderAll();
       this.E.onObjectChanged();
       this.renderInspector();
