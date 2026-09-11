@@ -82,9 +82,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<div class="ed-statusbar">
 					<span class="ed-hint-chip">Space = <?php esc_html_e( 'جابه‌جایی صفحه', 'case-designer' ); ?></span>
 					<span class="ed-hint-chip"><?php esc_html_e( 'چرخ ماوس = زوم', 'case-designer' ); ?></span>
-					<span class="ed-status-note"><?php esc_html_e( 'خط‌چین آبی = فضای چاپ · قرمز = فضای دوربین', 'case-designer' ); ?></span>
+					<span class="ed-status-note"><?php esc_html_e( 'خط‌چین آبی = فضای چاپ · قرمز = دوربین · سبز = فریم اصلی', 'case-designer' ); ?></span>
 					<span class="ed-spacer"></span>
-					<span class="ed-status-note"><?php esc_html_e( 'فایل چاپخانه کامل و بدون برش ذخیره می‌شود', 'case-designer' ); ?></span>
+					<span class="ed-status-note"><?php esc_html_e( 'فایل نهایی در ابعاد فریم اصلی کات می‌شود', 'case-designer' ); ?></span>
 				</div>
 			</div>
 
@@ -108,6 +108,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<div class="note-title"><i class="fa-regular fa-lightbulb"></i> <?php esc_html_e( 'کادرها و ابزار دست', 'case-designer' ); ?></div>
 						<?php esc_html_e( 'خط‌چین آبی = فضای چاپ', 'case-designer' ); ?><br>
 						<?php esc_html_e( 'خط‌چین قرمز = فضای دوربین', 'case-designer' ); ?><br>
+						<?php esc_html_e( 'خط‌چین سبز = فریم اصلی (برش نهایی)', 'case-designer' ); ?><br>
 						<strong><?php esc_html_e( 'نگه‌داشتن Space', 'case-designer' ); ?></strong> <?php esc_html_e( '= ابزار دست', 'case-designer' ); ?><br>
 						<?php esc_html_e( 'چرخ ماوس = بزرگ‌نمایی روی نشانگر', 'case-designer' ); ?>
 					</div>

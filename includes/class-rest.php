@@ -138,7 +138,7 @@ class Case_Designer_REST {
 		register_rest_route( $ns, '/settings', array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => function ( WP_REST_Request $req ) {
-				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'guidesNote', 'storeName', 'currency' );
+				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency' );
 				$clean   = array();
 				foreach ( $allowed as $key ) {
 					if ( isset( $req[ $key ] ) ) {
@@ -191,9 +191,12 @@ class Case_Designer_REST {
 		// کادرهای پیش‌فرض ارسالی از سمت پنل
 		$mockup = array();
 		if ( ! empty( $p['printRect'] ) ) { $mockup['printRect'] = $p['printRect']; }
+		if ( ! empty( $p['mainRect'] ) ) { $mockup['mainRect'] = $p['mainRect']; }
 		if ( ! empty( $p['camRects'] ) ) { $mockup['camRects'] = $p['camRects']; }
 		if ( ! empty( $p['printMm'] ) ) { $mockup['printMm'] = $p['printMm']; }
+		if ( ! empty( $p['mainMm'] ) ) { $mockup['mainMm'] = $p['mainMm']; }
 		if ( ! empty( $p['dpi'] ) ) { $mockup['dpi'] = (int) $p['dpi']; }
+		if ( ! empty( $p['mainColor'] ) ) { $mockup['mainColor'] = sanitize_text_field( $p['mainColor'] ); }
 		if ( $mockup ) {
 			Case_Designer_CPT::save_mockup( $id, $mockup );
 		}

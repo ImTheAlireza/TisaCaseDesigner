@@ -571,9 +571,9 @@ const EditorApp = {
 
   async openPreviewModal() {
     if (!this.E.layers().length) return toast('اول چیزی روی قاب قرار بدهید <i class="fa-regular fa-face-smile-wink"></i>', 'error');
-    // منتظر آماده‌شدن تصویر برش‌خورده‌ی پیش‌نمایش بمان (در غیر این صورت تامبنیل خالی می‌افتد)
+    // پیش‌نمایش جدید: موکاپ همیشه وسط و بزرگ، همراه با ماسک‌ها
     await this.E.enterPreview();
-    const thumb = this.E.exportPreviewThumb(true);
+    const thumb = await this.E.exportPreviewThumb(true);
     this.E.exitPreview();
     const m = this.model;
     const veil = modal(`
@@ -608,7 +608,7 @@ const EditorApp = {
     try { print = await this.E.exportPrint({ dpi: 300 }); }
     catch (e) { printErr = e; print = await this.E.exportPrint({ dpi: 150 }); }
     const designJson = this.E.serialize();
-    const pv = this.E.exportPreviewThumb(true);
+    const pv = await this.E.exportPreviewThumb(true);
     const veil = modal(`
       <div class="modal-head"><i class="fa-solid fa-cart-shopping"></i> افزودن به سبد خرید <button class="x" data-close><i class="fa-solid fa-xmark"></i></button></div>
       <div class="modal-body">
@@ -629,7 +629,7 @@ const EditorApp = {
         <div class="sum-row"><span>مدل</span><b>${esc(m.name)}</b></div>
         <div class="sum-row"><span>قیمت</span><b>${money(m.price)}</b></div>
         <div class="sum-row"><span>رزولوشن فایل چاپ</span><b>${print.mmToPx} DPI — ${faNum(print.width)}×${faNum(print.height)} پیکسل</b></div>
-        <div class="sum-row" style="border:none"><span>ابعاد چاپ</span><b>${faNum(m.mockup.printMm.w)}×${faNum(m.mockup.printMm.h)} میلی‌متر</b></div>
+        <div class="sum-row" style="border:none"><span>ابعاد چاپ</span><b>${faNum(print.mmW || m.mockup.printMm.w)}×${faNum(print.mmH || m.mockup.printMm.h)} میلی‌متر${print.usingMain ? " — فریم اصلی" : ""}</b></div>
         ${printErr ? `<div class="note-box warn" style="margin-top:10px">حجم ذخیره‌سازی محدود بود؛ فایل با ۱۵۰DPI ذخیره شد.</div>` : ''}
       </div>
       <div class="modal-foot">

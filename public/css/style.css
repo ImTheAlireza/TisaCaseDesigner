@@ -395,12 +395,29 @@
 #case-designer-root .modal-foot{ display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--glass-border); justify-content: flex-end; background: rgba(255, 255, 255, .22); }
 #case-designer-root .preview-stage{ display: grid; grid-template-columns: 1fr 320px; gap: 0; }
 #case-designer-root .preview-canvas{
-  padding: 24px; display: grid; place-items: center; min-height: 380px;
+  padding: 24px; display: grid; place-items: center; min-height: 420px;
   background: radial-gradient(600px 400px at 30% 20%, rgba(48, 79, 254, .12), transparent 60%),
               radial-gradient(500px 400px at 80% 90%, rgba(237, 25, 68, .1), transparent 60%),
-              rgba(255, 255, 255, .25);
+              rgba(255, 255, 255, .35);
 }
-#case-designer-root .preview-canvas img{ max-height: 520px; border-radius: 18px; box-shadow: 0 20px 44px rgba(31, 38, 135, .25); }
+#case-designer-root .preview-canvas img{
+  max-height: 560px; max-width: 100%; width: auto; height: auto;
+  object-fit: contain; object-position: center;
+  border-radius: 22px; box-shadow: 0 24px 48px rgba(31, 38, 135, .28);
+  display: block; margin: 0 auto;
+}
+#case-designer-root .modal.wide .preview-canvas{
+  min-height: 0; padding: 14px; background: rgba(255,255,255,.45);
+}
+#case-designer-root .modal.wide .preview-canvas img{
+  max-height: 420px; border-radius: 16px;
+}
+#case-designer-root .preview-stage .preview-canvas{
+  min-height: 520px; padding: 28px;
+}
+#case-designer-root .preview-stage .preview-canvas img{
+  max-height: 620px;
+}
 #case-designer-root .preview-side{ padding: 20px; border-inline-start: 1px solid var(--glass-border); background: rgba(255, 255, 255, .25); }
 #case-designer-root .note-box{
   border: 1px solid var(--glass-border); border-radius: 13px; padding: 12px; font-size: 12.5px;
