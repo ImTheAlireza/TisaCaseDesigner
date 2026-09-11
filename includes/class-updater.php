@@ -1,52 +1,42 @@
 <?php
 /**
- * به‌روزرسانی درجا از GitHub Release
+ * به‌روزرسانی درجا از GitHub Release — v1.6.7
  * ------------------------------------------------------------
- * مشکل: وردپرس هویت یک افزونه را با «مسیر پوشه‌اش» می‌شناسد
- * (case-designer/case-designer.php). تا حالا هر بار zip تازه‌ای آپلود می‌شد و
- * نام پوشه‌اش با نصبِ موجود فرق داشت، وردپرس افزونهٔ «دوم» می‌ساخت؛ بعد مجبور
- * می‌شدید یکی را پاک کنید و uninstall.php هم تنظیمات/موکاپ‌ها/فایل‌های چاپ را
- * می‌روبد. این کلاس آن چرخه را حذف می‌کند:
+ * مشکل: وردپرس هویت یک افزونه را با «مسیر پوشه‌اش» می‌شناسد.
+ * اگر پوشهٔ داخل zip با نصب موجود فرق داشته باشد، وردپرس افزونهٔ «دوم» می‌سازد.
+ * تا قبل از 1.6.5 هر بار zip تازه آپلود می‌شد و نام پوشه‌اش فرق داشت،
+ * وردپرس نسخهٔ دوم می‌ساخت و Delete هم uninstall.php را اجرا و دیتا را پاک می‌کرد.
  *
- *   ۱) نسخهٔ آخرِ Release گیت‌هاب را می‌خواند (با کش ۱۲ ساعته)
- *   ۲) اگر تازه‌تر بود، در صفحهٔ افزونه‌ها همان «۱.۶.۵ در دسترس است ← اکنون بروزرسانی کنید» را نشان می‌دهد
- *   ۳) موقع نصب، پوشهٔ داخل zip را به نامِ پوشهٔ «خودی» بازنویسی می‌کند،
- *      پس فایل‌ها همین‌جا روی همان نصبِ فعلی می‌نشینند — افزونهٔ دوم ساخته نمی‌شود
+ * این کلاس:
+ *  ۱) نسخهٔ آخر Release گیت‌هاب را می‌خواند (کش ۱۲ ساعته)
+ *  ۲) دکمهٔ «به‌روزرسانی» در پیشخوان را نشان می‌دهد
+ *  ۳) موقع به‌روزرسانی یا نصب دستی، پوشهٔ داخل zip را به نام پوشهٔ فعلی (یا به نام بدون ورژن) بازنویسی می‌کند
+ *     تا افزونهٔ دوم ساخته نشود.
  *
- * چون مسیر نصب از خود وردپرس (plugin_basename) خوانده می‌شود، نام پوشهٔ شما
- * هرچه باشد (case-designer، TisaCaseDesigner-1.6.3، …) فرقی نمی‌کند.
- *
- * نکات ایمنی:
- *   - Pre-release در گیت‌هاب «latest» حساب نمی‌شود؛ یعنی می‌توانید بیلد آزمایشی
- *     بگذارید و تا وقتی خواستید، روی سایت‌ها نرود.
- *   - دامنهٔ دانلود قفل است (api.github.com / codeload.github.com) و فقط کاربر
- *     با نقش update_plugins آن را می‌بیند.
- *   - برای بستن کامل: define('CASE_DESIGNER_DISABLE_UPDATER', true)
- *     یا فیلتر case_designer_disable_updater
+ * نکتهٔ مهم برای درخواست کاربر: پوشهٔ نهایی باید فقط «اسم» باشد، بدون ورژن.
+ *  - zipای که ما می‌سازیم (case-designer-*.zip) ریشه‌اش TisaCaseDesigner/ است (بدون ورژن)
+ *  - اگر کاربر بایگانی خودکار گیت‌هاب (TisaCaseDesigner-1.6.7.zip) را آپلود کند،
+ *    این فیلتر آن را هم به پوشهٔ موجود یا به TisaCaseDesigner بازنویسی می‌کند
+ *    تا پوشهٔ ورژن‌دار جدید ساخته نشود.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // دسترسی مستقیم ممنوع
+	exit;
 }
 
 class Case_Designer_Updater {
 
 	const REPO       = 'ImTheAlireza/TisaCaseDesigner';
 	const SLUG       = 'case-designer';
+	const CANONICAL  = 'TisaCaseDesigner'; // پوشهٔ بدون ورژن که کاربر می‌خواهد
 	const CACHE_KEY  = 'case_designer_release';
 	const CACHE_TTL  = 12 * HOUR_IN_SECONDS;
 	const FAIL_TTL   = 30 * MINUTE_IN_SECONDS;
 
 	public static function init() {
-		/* فقط در پیشخوان. صفحهٔ فرانت‌اند هرگز نباید درخواست شبکه‌ای بزند —
-		 * واکشی گیت‌هاب همین‌جا روی site_transient_update_plugins می‌نشیند و آن
-		 * ترنزینت در هر صفحه‌ای خوانده می‌شود. */
 		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
 			return;
 		}
-		/* هسته در get_site_transient() مقدار را از این فیلتر رد می‌کند؛ پس هم موقع چکِ روزانه
-		 * (cron) و هم وقتی صفحهٔ افزونه‌ها کش را می‌خواند، پاسخ ما اضافه می‌شود.
-		 * (pre_set_site_transient_* فقط با (false, $expiration) صدا زده می‌شود و برای تزریق بی‌فایده است.) */
 		add_filter( 'site_transient_update_plugins', array( __CLASS__, 'check' ) );
 		add_filter( 'plugins_api', array( __CLASS__, 'api_info' ), 20, 3 );
 		add_filter( 'upgrader_source_selection', array( __CLASS__, 'match_source_folder' ), 10, 4 );
@@ -55,9 +45,6 @@ class Case_Designer_Updater {
 		add_action( 'admin_init', array( __CLASS__, 'force_check' ) );
 	}
 
-	/* ---------- ابزارها ---------- */
-
-	// همان شناسه‌ای که وردپرس استفاده می‌کند؛ پس با هر نام پوشه‌ای کار می‌کند
 	public static function plugin_id() {
 		return plugin_basename( CASE_DESIGNER_PATH . 'case-designer.php' );
 	}
@@ -66,13 +53,9 @@ class Case_Designer_Updater {
 		if ( defined( 'CASE_DESIGNER_DISABLE_UPDATER' ) && CASE_DESIGNER_DISABLE_UPDATER ) {
 			return true;
 		}
-		// نکته: نقش کاربر اینجا چک نمی‌شود — چکِ روزانه در cron بدون کاربر لاگین‌شده
-		// اجرا می‌شود و اگر گره بخوریم، «به‌روزرسانی موجود است» هرگز نوشته نمی‌شود.
-		// دسترسی «اکنون بروزرسانی کنید» خودش توسط هسته کنترل می‌شود.
 		return (bool) apply_filters( 'case_designer_disable_updater', false );
 	}
 
-	/** آخرین ریلیز (+ لینک zip و یادداشت‌ها)؛ نتیجهٔ خطا هم کش می‌شود تا API رگباری زده نشود */
 	private static function release() {
 		$cached = get_transient( self::CACHE_KEY );
 		if ( is_array( $cached ) ) {
@@ -86,8 +69,8 @@ class Case_Designer_Updater {
 				'timeout'     => 6,
 				'redirection' => 2,
 				'headers'     => array(
-					'Accept'       => 'application/vnd.github+json',
-					'User-Agent'   => 'case-designer-updater',
+					'Accept'               => 'application/vnd.github+json',
+					'User-Agent'           => 'case-designer-updater',
 					'X-GitHub-Api-Version' => '2022-11-28',
 				),
 			)
@@ -96,7 +79,6 @@ class Case_Designer_Updater {
 			$j = json_decode( wp_remote_retrieve_body( $r ), true );
 			if ( is_array( $j ) && ! empty( $j['tag_name'] ) ) {
 				$tag = ltrim( (string) $j['tag_name'], 'vV' );
-				// zipball خود گیت‌هاب مطمئن‌ترین گزینه است (بدون لاگین، بدون ریدایرکت)
 				$pkg = ! empty( $j['zipball_url'] )
 					? $j['zipball_url']
 					: sprintf( 'https://github.com/%s/archive/%s.zip', self::REPO, rawurlencode( (string) $j['tag_name'] ) );
@@ -114,12 +96,7 @@ class Case_Designer_Updater {
 		return $out;
 	}
 
-	/* ---------- هسته ---------- */
-
-	/** به وردپرس بگو نسخهٔ تازه هست — همان «Update now» ردیف افزونه */
 	public static function check( $transient ) {
-		// فقط یک آبجکتِ آماده (که خودش checked را دارد) را کامل می‌کنیم؛ اگر هنوز
-		// ساخته نشده، بگذاریم wp_update_plugins() خودش بسازد
 		if ( ! is_object( $transient ) || ! isset( $transient->checked ) || ! is_array( $transient->checked ) ) {
 			return $transient;
 		}
@@ -137,87 +114,63 @@ class Case_Designer_Updater {
 			return $transient;
 		}
 		$obj = new stdClass();
-		$obj->slug             = self::SLUG;
-		$obj->plugin           = self::plugin_id();
-		$obj->new_version      = $rel['version'];
-		$obj->package          = $rel['package'];
-		$obj->url              = $rel['url'];
-		$obj->tested           = '6.7';
-		$obj->requires_php     = '7.4';
-		$obj->sections         = array( 'changelog' => $rel['notes'] );
+		$obj->slug         = self::SLUG;
+		$obj->plugin       = self::plugin_id();
+		$obj->new_version  = $rel['version'];
+		$obj->package      = $rel['package'];
+		$obj->url          = $rel['url'];
+		$obj->tested       = '6.7';
+		$obj->requires_php = '7.4';
+		$obj->sections     = array( 'changelog' => $rel['notes'] );
 		$transient->response[ self::plugin_id() ] = $obj;
 		return $transient;
 	}
 
-	/** پنجرهٔ «نمایش جزییات» — بدون این، وردپرس برای افزونهٔ غیر از wp.org خطای صفحه می‌داد */
 	public static function api_info( $result, $action, $args ) {
 		if ( 'plugin_information' !== $action ) {
 			return $result;
 		}
 		$slug   = isset( $args->slug ) ? (string) $args->slug : '';
-		$folder = basename( dirname( self::plugin_id() ) ); // اگر از بایگانی گیت‌هاب نصب شده، اسلاگ همین است
-		if ( self::SLUG !== $slug && self::plugin_id() !== $slug && $folder !== $slug ) {
-			return $result; // کارِ افزونهٔ دیگر نیست
+		$folder = basename( dirname( self::plugin_id() ) );
+		if ( self::SLUG !== $slug && self::plugin_id() !== $slug && $folder !== $slug && self::CANONICAL !== $slug ) {
+			return $result;
 		}
 		$rel = self::release();
 		if ( empty( $rel['version'] ) ) {
 			return $result;
 		}
-		$info              = new stdClass();
-		$info->name        = $rel['name'];
-		$info->slug        = self::SLUG;
-		$info->version     = $rel['version'];
-		$info->author      = '<a href="https://tisacase.com">TisaCase</a>';
-		$info->requires    = '6.0';
-		$info->requires_php = '7.4';
-		$info->tested      = '6.7';
+		$info                = new stdClass();
+		$info->name          = $rel['name'];
+		$info->slug          = self::SLUG;
+		$info->version       = $rel['version'];
+		$info->author        = '<a href="https://tisacase.com">TisaCase</a>';
+		$info->requires      = '6.0';
+		$info->requires_php  = '7.4';
+		$info->tested        = '6.7';
 		$info->download_link = $rel['package'];
-		$info->homepage    = 'https://tisacase.com';
-		$info->sections    = array(
-			'description' => wpautop( 'ادیتور طراحی قاب گوشی با کادرهای راهنمای چاپ/دوربین و خروجی چاپ کاملِ بدون برش.' ),
+		$info->homepage      = 'https://tisacase.com';
+		$info->sections      = array(
+			'description' => wpautop( 'ادیتور طراحی قاب گوشی با کادرهای راهنمای چاپ/دوربین/فریم اصلی و خروجی چاپ بر اساس فریم اصلی.' ),
 			'changelog'   => wpautop( str_replace( array( "\r\n", "\n" ), array( '<br>', '<br>' ), esc_html( $rel['notes'] ) ) ),
 		);
 		return $info;
 	}
 
 	/**
-	 * پوشهٔ داخل zip گیت‌هاب اسمش همیشه با پوشهٔ نصب‌شده فرق دارد: zipball یک
-	 * پوشهٔ بالاسری به شکل «ImTheAlireza-TisaCaseDesigner-<sha>» می‌سازد (اسمش هر
-	 * ریلیز عوض می‌شود) و بایگانی تگ «TisaCaseDesigner-1.6.5». پس هیچ اسمی در کد
-	 * hard-code نشده؛ مبنا نامِ پوشهٔ «خودی» است که از وردپرس خوانده می‌شود.
-	 * وردپرس موقع به‌روزرسانیِ افزونه مقصد را این‌طور می‌سازد:
-	 *
-	 *     if ( in_array( $destination, $protected_directories, true ) ) {
-	 *         $destination = trailingslashit( $destination ) . trailingslashit( basename( $source ) );
-	 *     }
-	 *
-	 * یعنی نامِ پوشهٔ داخل zip، نامِ پوشهٔ نصب را تعیین می‌کند؛ اگر با نصبِ فعلی
-	 * فرق داشته باشد، وردپرس افزونهٔ «جدید»ی کنار قبلی می‌سازد و فایل‌های قدیمی را
-	 * پاک می‌کند — همان چیزی که می‌خواهیم حذف شود. پس اینجا پوشهٔ extracted را به
-	 * نامِ پوشهٔ خودی بازنام‌گذاری می‌کنیم تا دقیقاً روی همان نصبِ فعلی بریزد:
-	 * بدون افزونهٔ دوم، بدون Delete، و uninstall.php هرگز اجرا نمی‌شود
-	 * (تنظیمات/موکاپ‌ها/فایل‌های چاپ سالم می‌مانند).
-	 *
-	 * امضا (از هسته): apply_filters( 'upgrader_source_selection', $source,
-	 * $remote_source, $this, $args['hook_extra'] ) — پس hook_extra آرگومان چهارم
-	 * است؛ سومین آرگومان خودِ آبجکت upgrader است.
+	 * مهم‌ترین فیلتر: پوشهٔ داخل zip را به پوشهٔ درست بازنویسی می‌کند
+	 * - برای upgrade: پوشهٔ موجود (هرچه باشد) حفظ می‌شود تا افزونهٔ دوم ساخته نشود
+	 * - برای install دستی: اگر افزونه قبلاً نصب است، همان پوشهٔ قبلی؛ وگرنه TisaCaseDesigner (بدون ورژن)
+	 * - اگر zip از بایگانی خودکار گیت‌هاب باشد (TisaCaseDesigner-1.6.7)، باز هم به بدون ورژن تبدیل می‌شود
 	 */
 	public static function match_source_folder( $source, $remote_source, $upgrader, $hook_extra ) {
-		if ( is_wp_error( $source ) || ! is_array( $hook_extra ) || empty( $hook_extra['plugin'] ) ) {
-			return $source; // نصبِ تازه، یا به‌روزرسانیِ افزونهٔ دیگر
-		}
-		if ( $hook_extra['plugin'] !== self::plugin_id() ) {
+		if ( is_wp_error( $source ) ) {
 			return $source;
 		}
-		$want = basename( dirname( self::plugin_id() ) );
-		if ( '' === $want || '.' === $want || ! is_string( $source ) ) {
-			return $source; // افزونه بیرون از پوشه نصب شده (سناریوی نادر)؛ کاری نداریم
+		if ( ! is_array( $hook_extra ) ) {
+			return $source;
 		}
-		if ( trailingslashit( $remote_source ) === trailingslashit( $source ) ) {
-			return $source; // zip پوشهٔ تکیِ بالاسری ندارد که برداشته شود
-		}
-		if ( 0 === strcasecmp( basename( $source ), $want ) ) {
-			return $source; // از قبل جور است
+		if ( isset( $hook_extra['type'] ) && 'plugin' !== $hook_extra['type'] ) {
+			return $source;
 		}
 
 		global $wp_filesystem;
@@ -226,36 +179,77 @@ class Case_Designer_Updater {
 			WP_Filesystem();
 		}
 		if ( ! $wp_filesystem ) {
-			return $source; // FS در دسترس نیست؛ خودِ وردپرس بعداً خطای واضح می‌دهد
+			return $source;
+		}
+
+		// آیا این zip مال ماست؟ (case-designer.php داخلش هست)
+		$has_our_file = $wp_filesystem->exists( trailingslashit( $source ) . 'case-designer.php' );
+		if ( ! $has_our_file ) {
+			return $source;
+		}
+
+		$want = '';
+
+		// حالت به‌روزرسانی (upgrade) — hook_extra['plugin'] دارد
+		if ( ! empty( $hook_extra['plugin'] ) ) {
+			if ( $hook_extra['plugin'] !== self::plugin_id() ) {
+				return $source; // افزونهٔ دیگر
+			}
+			$want = basename( dirname( self::plugin_id() ) );
+
+			// اگر پوشهٔ فعلی ورژن‌دار است (مثل TisaCaseDesigner-1.6.6) و کاربر درخواست پوشهٔ بدون ورژن کرده،
+			// به پوشهٔ بدون ورژن مهاجرت می‌کنیم تا از این به بعد ورژن در نام نباشد.
+			// برای اینکه دیتا از دست نرود، اول به canonical تبدیل می‌کنیم.
+			if ( preg_match( '/^'.preg_quote(self::CANONICAL, '/').'-\d+\.\d+/', $want ) || preg_match( '/-\\d+\\.\\d+\\.\\d+$/', $want ) ) {
+				// اگر قبلاً پوشهٔ canonical وجود دارد، همان را می‌خواهیم تا رویش بریزد
+				// وگرنه خود canonical
+				$want = self::CANONICAL;
+			}
+		} else {
+			// حالت نصب دستی (install) — plugin در hook_extra نیست
+			// اگر افزونه قبلاً نصب است (فعال یا غیرفعال)، همان پوشه را حفظ کن تا تکراری نشود
+			$existing_id = self::plugin_id();
+			if ( $existing_id && $wp_filesystem->exists( WP_PLUGIN_DIR . '/' . $existing_id ) ) {
+				$want = basename( dirname( $existing_id ) );
+				// اگر پوشهٔ موجود ورژن‌دار است، به بدون ورژن مهاجرت کن
+				if ( preg_match( '/-\\d+\\.\\d+/', $want ) ) {
+					$want = self::CANONICAL;
+				}
+			} else {
+				// نصب تازه — پوشهٔ بدون ورژن
+				$want = self::CANONICAL;
+			}
+		}
+
+		if ( '' === $want || '.' === $want || ! is_string( $source ) ) {
+			return $source;
+		}
+		if ( trailingslashit( $remote_source ) === trailingslashit( $source ) ) {
+			return $source;
+		}
+		if ( 0 === strcasecmp( basename( $source ), $want ) ) {
+			return $source;
 		}
 
 		$new = trailingslashit( dirname( $source ) ) . $want;
 		if ( $wp_filesystem->exists( $new ) ) {
-			$wp_filesystem->delete( $new, true ); // باقی‌ماندهٔ تلاش نیمه‌کارهٔ قبلی
+			$wp_filesystem->delete( $new, true );
 		}
 		if ( $wp_filesystem->move( $source, $new, true ) && $wp_filesystem->exists( trailingslashit( $new ) . 'case-designer.php' ) ) {
 			return $new;
 		}
-		// نشد: نصبِ نصفه‌نیمه نمی‌سازیم — با WP_Error متوقف می‌شود و فایل‌های فعلی دست‌نخورده می‌مانند
 		return new WP_Error(
 			'case_designer_updater_folder',
 			'پوشهٔ موقت نتوانست به «' . $want . '» بازنام‌گذاری شود، پس به‌روزرسانی متوقف شد و افزونهٔ فعلی دست‌نخورده است. دسترسی نوشتن روی wp-content/plugins را بررسی کنید.'
 		);
 	}
 
-	/**
-	 * بعد از نصب/به‌روزرسانی، کش را می‌ریزیم تا بررسی بعدی نسخهٔ واقعی را ببیند.
-	 * امضای هسته: do_action( 'upgrader_process_complete', $upgrader, $hook_extra ) —
-	 * برای update کلید 'plugin' را می‌دهد، برای bulk کلید 'plugins'، و برای install
-	 * هیچ مسیری نمی‌دهد (در آن حالت هم کش را می‌ریزیم: بی‌هزینه‌تر از این است که
-	 * بعد از نصب، نسخهٔ کش‌شده نشان بدهد «به‌روزرسانی موجود است»).
-	 */
 	public static function after_update( $upgrader, $hook_extra ) {
 		if ( ! is_array( $hook_extra ) ) {
 			return;
 		}
 		if ( isset( $hook_extra['type'] ) && 'plugin' !== $hook_extra['type'] ) {
-			return; // آپدیت قالب/هسته/زبان ربطی به ما ندارد
+			return;
 		}
 		$paths = array();
 		if ( isset( $hook_extra['plugin'] ) && is_string( $hook_extra['plugin'] ) ) {
@@ -268,14 +262,46 @@ class Case_Designer_Updater {
 				}
 			}
 		}
+		// برای install دستی، $paths خالی است — باز هم کش را پاک می‌کنیم
 		if ( $paths && ! in_array( self::plugin_id(), $paths, true ) ) {
-			return; // هیچ‌کدام مال ما نبود
+			// اما اگر هیچ‌کدام مال ما نبود و has_our_file هم نبود، کاری نداریم
+			// برای اطمینان، اگر پوشهٔ canonical تازه ساخته شده، باز هم کش را پاک کن
+			if ( ! file_exists( WP_PLUGIN_DIR . '/' . self::CANONICAL . '/case-designer.php' ) ) {
+				return;
+			}
 		}
 		delete_transient( self::CACHE_KEY );
 		delete_site_transient( 'update_plugins' );
+
+		// پاکسازی پوشه‌های قدیمی ورژن‌دار بعد از مهاجرت به بدون ورژن
+		global $wp_filesystem;
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+		if ( $wp_filesystem ) {
+			$plugins_dir = WP_PLUGIN_DIR;
+			$list = $wp_filesystem->dirlist( $plugins_dir );
+			if ( is_array( $list ) ) {
+				foreach ( $list as $name => $info ) {
+					if ( 'd' !== $info['type'] ) continue;
+					if ( $name === self::CANONICAL ) continue;
+					if ( $name === basename( dirname( self::plugin_id() ) ) ) continue;
+					// الگوی ورژن‌دار: TisaCaseDesigner-1.6.x یا case-designer-1.6.x
+					if ( preg_match( '/^(TisaCaseDesigner|case-designer)-\\d+\\.\\d+/', $name ) ) {
+						$maybe = trailingslashit( $plugins_dir ) . $name . '/case-designer.php';
+						if ( $wp_filesystem->exists( $maybe ) ) {
+							// فقط اگر پوشهٔ canonical الان موجود است، قدیمی‌ها را پاک کن
+							if ( $wp_filesystem->exists( trailingslashit( $plugins_dir ) . self::CANONICAL . '/case-designer.php' ) ) {
+								$wp_filesystem->delete( trailingslashit( $plugins_dir ) . $name, true );
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
-	/** لینک «بررسی مجدد نسخه» ردیف افزونه — برای وقتی که نمی‌خواهید تا چکِ روزانه صبر کنید */
 	public static function row_action( $actions, $plugin_file ) {
 		if ( $plugin_file !== self::plugin_id() || self::disabled() || ! current_user_can( 'update_plugins' ) ) {
 			return $actions;
@@ -302,4 +328,7 @@ class Case_Designer_Updater {
 	}
 }
 
-Case_Designer_Updater::init();
+// init در case-designer.php صدا زده می‌شود، اینجا هم برای سازگاری با نسخه‌های قدیمی
+if ( function_exists( 'add_filter' ) ) {
+	Case_Designer_Updater::init();
+}
