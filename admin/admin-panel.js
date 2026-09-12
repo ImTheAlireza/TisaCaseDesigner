@@ -49,7 +49,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.1';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.17';
 
   /* ---------------- آیکن‌های SVG خطی درون‌خطی (stroke 2، سر گرد) ---------------- */
   const ICONS = {
@@ -89,6 +89,7 @@
   const brandOf = id => BRANDS.find(b => b.id === id) || { id, name: id, ic: 'mobile' };
 
   const PRINT_RECT = { x: 110, y: 120, w: 580, h: 1200 };
+  const MAIN_RECT = { x: 40, y: 50, w: 720, h: 1400, radius: 90 };
   const CAM_RECTS = {
     iphone: [{ x: 130, y: 150, w: 180, h: 180 }],
     samsung: [{ x: 135, y: 150, w: 160, h: 330 }],
@@ -146,9 +147,10 @@
   }
 
   const DEFAULT_SETTINGS = {
-    defaultDpi: 300, printColor: '#304ffe', camColor: '#ed1944',
+    defaultDpi: 300, printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
     guidesOn: true, restoreDraft: true,
     guidesNote: 'برش دوربین فقط در پیش‌نمایش اعمال می‌شود؛ فایل ارسالی به چاپخانه بدون برش ذخیره می‌گردد.',
+    editorPageId: 0,
   };
 
   const COLOR_PALETTE = [
@@ -200,8 +202,8 @@
       const style = data.brandId === 'apple' ? 'iphone' : data.brandId === 'samsung' ? 'samsung' : 'xiaomi';
       const palette = [['#5b6472', '#333a45'], ['#c7b8dd', '#8d7bb0'], ['#7ba98f', '#4d705c'], ['#c9887b', '#94584d'], ['#3f3f46', '#1e1e22'], ['#b8c2e0', '#7f8cb8']][Math.floor(Math.random() * 6)];
       const mockup = data.mockupImg ? {
-        img: data.mockupImg, printRect: { ...PRINT_RECT }, camRects: CAM_RECTS[style].map(c => ({ ...c })),
-        printMm: { w: 66, h: 138 }, dpi: 300,
+        img: data.mockupImg, printRect: { ...PRINT_RECT }, mainRect: { ...MAIN_RECT }, camRects: CAM_RECTS[style].map(c => ({ ...c })),
+        printMm: { w: 66, h: 138 }, mainMm: { w: 74, h: 148 }, dpi: 300, mainColor: '#10b981',
       } : window.generateMockup(style, palette[0], palette[1], data.name);
       db.models.push({ id: 'custom-' + Date.now(), brandId: data.brandId, name: data.name, price: data.price || 350000, productId: data.productId || 0, mockup });
       DB.save(db);
@@ -500,6 +502,9 @@
       const m = State.models.find(x => x.id === State.modelId);
       if (!m) { card.innerHTML = `<div class="cd-card">${emptyState('mobile', 'مدلی انتخاب نشده', 'از لیست کنار، یک مدل انتخاب کنید.')}</div>`; return; }
       const b = brandOf(m.brandId);
+      // ensure mainRect exists
+      if (!m.mockup.mainRect) m.mockup.mainRect = { ...MAIN_RECT };
+      if (!m.mockup.mainMm) m.mockup.mainMm = { w: 74, h: 148 };
       card.innerHTML = `
         <div class="cd-card">
           <div class="cd-card-head">
@@ -508,6 +513,7 @@
               <button class="cd-btn cd-btn-sm" id="btnReplaceImg">${ic('image', 14)} تعویض تصویر</button>
               <input type="file" id="mockupFile" accept="image/*" class="cd-hidden">
               <button class="cd-btn cd-btn-sm" id="btnAddCam">${ic('camera', 14)} کادر دوربین</button>
+              <button class="cd-btn cd-btn-sm" id="btnAddMain">${ic('boxes', 14)} فریم اصلی</button>
               <button class="cd-btn cd-btn-primary cd-btn-sm" id="btnSaveMockup">${ic('save', 14)} ذخیره موکاپ</button>
             </div>
           </div>
@@ -518,6 +524,17 @@
             <label class="cd-field">گردی گوشه‌ی کادر چاپ (px)<input type="number" class="cd-input" id="prRad" value="${m.mockup.printRect.radius || 0}" min="0" max="400"></label>
             <label class="cd-field">گردی گوشه‌ی کادر دوربین (px)<input type="number" class="cd-input" id="camRad" value="${(m.mockup.camRects[0] || {}).r || 0}" min="0" max="400"></label>
           </div>
+          <div class="cd-fields cd-fields-2" style="margin-top:12px">
+            <label class="cd-field" style="border:1px dashed rgba(16,185,129,.35);border-radius:10px;padding:10px;background:rgba(16,185,129,.06)"><b style="color:#0e7a6b">${ic('boxes',13)} فریم اصلی طرح</b>
+              <span class="cd-helper">دقیقاً ابعاد گوشی را مشخص کنید — فایل نهایی در همین ابعاد کات و ذخیره می‌شود</span>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+                <label class="cd-field">عرض فریم اصلی (mm)<input type="number" class="cd-input" id="mainMmW" value="${m.mockup.mainMm.w}" min="10" max="400"></label>
+                <label class="cd-field">ارتفاع فریم اصلی (mm)<input type="number" class="cd-input" id="mainMmH" value="${m.mockup.mainMm.h}" min="10" max="600"></label>
+              </div>
+              <label class="cd-field" style="margin-top:8px">گردی گوشه‌ی فریم اصلی (px)<input type="number" class="cd-input" id="mainRad" value="${m.mockup.mainRect.radius || 0}" min="0" max="500"></label>
+            </label>
+            <label class="cd-field"><span class="cd-helper">اگر فریم اصلی نداشته باشید، فایل چاپ بر اساس فضای چاپ برش می‌خورد. برای گوشی، فریم اصلی باید کل بدنه را بپوشاند.</span></label>
+          </div>
           <div class="cd-drawwrap">
             <div class="cd-draw" id="drawArea">
               ${m.mockup.img ? `<div id="imgWrap" class="cd-imgwrap"><img id="mockupImg" src="${esc(m.mockup.img)}" alt=""></div>`
@@ -526,7 +543,8 @@
           </div>
           <div class="cd-note cd-note-ok">
             ${ic('info', 14)}
-            <span><b>کادر آبیرنگ = فضای چاپ</b> و <b>کادر قرمز = فضای دوربین (برش)</b>. کادر را بکشید تا جابه‌جا شود؛ دستگیره‌ی <b>گوشه‌ی راست-پایین</b> برای تغییر اندازه است و دستگیره‌ی <b>وسط لبه‌ی بالا</b> را بکشید تا گوشه‌ها لحظه‌ای گرد شوند. در ادیتور، طرح فقط داخل کادر چاپ نمایش داده می‌شود و در فضای دوربین دیده نمی‌شود؛ اما فایل ارسالی به چاپخانه کامل و بدون برش ذخیره می‌گردد.</span>
+            <span><b>کادر آبیرنگ = فضای چاپ</b>، <b>کادر قرمز = فضای دوربین</b> و <b>کادر سبزرنگ = فریم اصلی طرح</b>. کادرها را بکشید تا جابه‌جا شوند؛ دستگیره‌ی گوشه برای تغییر اندازه و دستگیره‌ی وسط لبه‌ی بالا برای گردی گوشه‌هاست.<br>
+            در ادیتور، طرح فقط داخل فضای چاپ دیده می‌شود و دوربین‌ها سوراخ هستند؛ <b>فایل نهایی دقیقاً در ابعاد «فریم اصلی طرح» کات و ذخیره می‌شود</b> — اگر فریم اصلی نداشته باشید، بر اساس فضای چاپ برش می‌خورد.</span>
           </div>
         </div>`;
       this.loadImage(m);
@@ -535,10 +553,18 @@
         m.mockup.camRects.push({ x: r.x + 30, y: r.y + 30, w: 130, h: 130, r: +(q('#camRad')?.value || 0) });
         this.renderBoxes(m);
       });
+      q('#btnAddMain').addEventListener('click', () => {
+        const W = m.mockup.imgW || 800, H = m.mockup.imgH || 1500;
+        m.mockup.mainRect = { x: Math.round(W*0.05), y: Math.round(H*0.03), w: Math.round(W*0.9), h: Math.round(H*0.94), radius: +(q('#mainRad')?.value || 90) };
+        this.renderBoxes(m);
+        toast('فریم اصلی اضافه شد — آن را بکشید تا دقیقاً روی گوشی قرار گیرد');
+      });
       q('#btnSaveMockup').addEventListener('click', async () => {
         m.mockup.printMm = { w: +q('#mmW').value || 66, h: +q('#mmH').value || 138 };
+        m.mockup.mainMm = { w: +q('#mainMmW').value || 74, h: +q('#mainMmH').value || 148 };
         m.mockup.dpi = +q('#dpiF').value || 300;
         m.mockup.printRect.radius = Math.max(0, Math.min(400, +q('#prRad').value || 0));
+        m.mockup.mainRect.radius = Math.max(0, Math.min(500, +q('#mainRad')?.value || 0));
         const camRad = Math.max(0, Math.min(400, +q('#camRad').value || 0));
         m.mockup.camRects.forEach(c => { c.r = camRad; });
         const { ok } = await guarded(() => Store.saveMockup(m.id, m.mockup));
@@ -568,6 +594,9 @@
         const w = Math.round(img.naturalWidth * s), h = Math.round(img.naturalHeight * s);
         wrap.style.width = w + 'px';
         wrap.style.height = h + 'px';
+        // خودِ <img> هم صریحاً فیت می‌شود تا رندر به CSS موروثی وابسته نباشد
+        img.style.width = w + 'px';
+        img.style.height = h + 'px';
         // کادر خط‌چین، عکس را «در آغوش» می‌گیرد تا عکس همیشه دقیقاً داخل کادر فیت شود
         area.style.width = Math.min(w + 48, (drawwrap.clientWidth || (w + 48)) - 28) + 'px';
         area.style.height = (h + 48) + 'px';
@@ -603,29 +632,38 @@
        به داخل تصویر برمی‌گردند تا همیشه روی عکس بمانند */
     clampRects(m, W, H) {
       const clamp = (r, minW, minH) => {
+        if (!r) return;
         if (r.w > W) { r.w = Math.max(minW, Math.round(W * .8)); r.x = Math.max(0, Math.round((W - r.w) / 2)); }
         if (r.h > H) { r.h = Math.max(minH, Math.round(H * .8)); r.y = Math.max(0, Math.round((H - r.h) / 2)); }
         r.x = Math.min(Math.max(0, r.x), Math.max(0, W - r.w));
         r.y = Math.min(Math.max(0, r.y), Math.max(0, H - r.h));
       };
       clamp(m.mockup.printRect, 60, 80);
+      if (m.mockup.mainRect) clamp(m.mockup.mainRect, 60, 80);
       m.mockup.camRects.forEach(c => clamp(c, 40, 40));
     },
     renderBoxes(m) {
       const wrap = q('#imgWrap'); if (!wrap) return;
       qa('.cd-rect', wrap).forEach(b => b.remove());
       State.boxes = [];
-      const colors = { print: (State.settings || {}).printColor || '#304ffe', cam: (State.settings || {}).camColor || '#ed1944' };
+      const colors = {
+        print: (State.settings || {}).printColor || m.mockup.printColor || '#304ffe',
+        cam: (State.settings || {}).camColor || m.mockup.camColor || '#ed1944',
+        main: (State.settings || {}).mainColor || m.mockup.mainColor || '#10b981'
+      };
       const mk = (type, r, idx) => {
+        if (!r || r.w <= 0) return;
         const el = document.createElement('div');
-        el.className = 'cd-rect';
-        const color = type === 'print' ? colors.print : colors.cam;
+        el.className = 'cd-rect' + (type === 'main' ? ' cd-rect-main' : '');
+        const color = type === 'print' ? colors.print : type === 'main' ? colors.main : colors.cam;
         el.style.borderColor = color;
-        el.style.background = type === 'print' ? 'rgba(48,79,254,.07)' : 'rgba(237,25,68,.07)';
+        el.style.background = type === 'print' ? 'rgba(48,79,254,.07)' : type === 'main' ? 'rgba(16,185,129,.09)' : 'rgba(237,25,68,.07)';
+        el.style.borderWidth = type === 'main' ? '2.5px' : '2px';
+        const label = type === 'print' ? 'فضای چاپ' : type === 'main' ? 'فریم اصلی طرح' : 'دوربین ' + (idx + 1);
         el.innerHTML = `
-          <div class="cd-rect-label" style="background:${color}">${type === 'print' ? 'فضای چاپ' : 'دوربین ' + (idx + 1)}</div>
+          <div class="cd-rect-label" style="background:${color}">${label}</div>
           <div class="cd-rect-size"></div>
-          ${type === 'cam' ? `<button class="cd-rect-del" title="حذف کادر">${ic('x', 11)}</button>` : ''}
+          ${type === 'cam' ? `<button class="cd-rect-del" title="حذف کادر">${ic('x', 11)}</button>` : type === 'main' ? `<button class="cd-rect-del" title="حذف فریم اصلی" data-main-del>${ic('x', 11)}</button>` : ''}
           <div class="cd-rect-handle" title="تغییر اندازه" style="border-color:${color}"></div>
           <div class="cd-rect-radhandle" title="بکشید تا گوشه‌ها گرد شوند" style="border-color:${color}"></div>`;
         wrap.appendChild(el);
@@ -635,19 +673,42 @@
           el.style.top = (r.y * State.displayScale) + 'px';
           el.style.width = (r.w * State.displayScale) + 'px';
           el.style.height = (r.h * State.displayScale) + 'px';
-          const rad = type === 'print' ? (r.radius || 0) : (r.r || 0);
+          const rad = type === 'print' ? (r.radius || 0) : (r.r || r.radius || 0);
           el.style.borderRadius = (rad * State.displayScale) + 'px';
-          const mmW = (r.w / m.mockup.printRect.w) * m.mockup.printMm.w;
-          const mmH = (r.h / m.mockup.printRect.h) * m.mockup.printMm.h;
-          el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
+          let mmW, mmH;
+          if (type === 'main') {
+            mmW = (r.w / (m.mockup.printRect.w || 1)) * (m.mockup.printMm.w || 66);
+            mmH = (r.h / (m.mockup.printRect.h || 1)) * (m.mockup.printMm.h || 138);
+            // if mainMm exists, show its configured size
+            if (m.mockup.mainMm) {
+              el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)}×${mmH.toFixed(1)} mm → ${m.mockup.mainMm.w}×${m.mockup.mainMm.h} mm نهایی`;
+            } else {
+              el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر (فریم اصلی)`;
+            }
+          } else {
+            mmW = (r.w / m.mockup.printRect.w) * m.mockup.printMm.w;
+            mmH = (r.h / m.mockup.printRect.h) * m.mockup.printMm.h;
+            el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
+          }
         };
         apply();
         this.bindBoxDrag(box, m);
         State.boxes.push(box);
         const del = el.querySelector('.cd-rect-del');
-        if (del) del.addEventListener('click', e => { e.stopPropagation(); m.mockup.camRects.splice(idx, 1); this.renderBoxes(m); });
+        if (del) del.addEventListener('click', e => {
+          e.stopPropagation();
+          if (type === 'main') {
+            if (confirm('فریم اصلی حذف شود؟ فایل چاپ بعد از این بر اساس فضای چاپ برش می‌خورد.')) {
+              m.mockup.mainRect = null;
+              this.renderBoxes(m);
+            }
+          } else {
+            m.mockup.camRects.splice(idx, 1); this.renderBoxes(m);
+          }
+        });
       };
       mk('print', m.mockup.printRect, 0);
+      if (m.mockup.mainRect) mk('main', m.mockup.mainRect, 0);
       m.mockup.camRects.forEach((c, i) => mk('cam', c, i));
     },
     bindBoxDrag(box, m) {
@@ -666,9 +727,11 @@
           if (radius) {
             const maxR = Math.min(box.r.w, box.r.h) / 2;
             const val = Math.max(0, Math.min(maxR, (orig.radius || orig.r || 0) + dx));
-            if (box.type === 'print') box.r.radius = val; else box.r.r = val;
+            if (box.type === 'print') box.r.radius = val;
+            else if (box.type === 'main') box.r.radius = val;
+            else box.r.r = val;
             el.style.borderRadius = (val * s) + 'px';
-            const inp = box.type === 'print' ? q('#prRad') : q('#camRad');
+            const inp = box.type === 'print' ? q('#prRad') : box.type === 'main' ? q('#mainRad') : q('#camRad');
             if (inp) inp.value = Math.round(val);
           } else if (resize) {
             box.r.w = Math.max(20, Math.min(imgW - box.r.x, orig.w + dx));
@@ -679,9 +742,15 @@
           }
           el.style.left = (box.r.x * s) + 'px'; el.style.top = (box.r.y * s) + 'px';
           el.style.width = (box.r.w * s) + 'px'; el.style.height = (box.r.h * s) + 'px';
-          const mmW = (box.r.w / m.mockup.printRect.w) * m.mockup.printMm.w;
-          const mmH = (box.r.h / m.mockup.printRect.h) * m.mockup.printMm.h;
-          el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
+          if (box.type === 'main') {
+            const mmW = (box.r.w / (m.mockup.printRect.w || 1)) * (m.mockup.printMm.w || 66);
+            const mmH = (box.r.h / (m.mockup.printRect.h || 1)) * (m.mockup.printMm.h || 138);
+            el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)}×${mmH.toFixed(1)} mm (فریم اصلی)`;
+          } else {
+            const mmW = (box.r.w / m.mockup.printRect.w) * m.mockup.printMm.w;
+            const mmH = (box.r.h / m.mockup.printRect.h) * m.mockup.printMm.h;
+            el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
+          }
         };
         const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); };
         el.addEventListener('pointermove', move);
@@ -981,13 +1050,58 @@
       const { data } = await guarded(() => Store.settings(), {});
       State.settings = { ...DEFAULT_SETTINGS, ...(data || {}) };
       const S = State.settings;
-      this.tmp = { printColor: S.printColor || '#304ffe', camColor: S.camColor || '#ed1944' };
+      this.tmp = { printColor: S.printColor || '#304ffe', camColor: S.camColor || '#ed1944', mainColor: S.mainColor || '#10b981' };
       const seg = (id, cur) => `<div class="cd-seg" data-seg="${id}">
         ${COLOR_PALETTE.map(p => `<button type="button" class="cd-seg-opt ${p.c === cur ? 'active' : ''}" data-color="${p.c}"><span class="cd-swatch" style="background:${p.c}"></span>${p.n}</button>`).join('')}
       </div>`;
+
+      // لیست برگه‌ها و محصولات برای انتخاب
+      let pages = [];
+      let pagesErr = false;
+      let products = [];
+      let productsErr = false;
+      if (IS_WP) {
+        try {
+          pages = await api('GET', '/pages');
+        } catch (e) {
+          pagesErr = true;
+          pages = [];
+        }
+        try {
+          products = await api('GET', '/products');
+        } catch (e) {
+          productsErr = true;
+          products = [];
+        }
+      }
+
+      const editorPageOptions = pages.map(p => `<option value="${p.id}" ${String(p.id) === String(S.editorPageId) ? 'selected' : ''}>${esc(p.title)} ${p.has_shortcode ? '✓ [case_designer]' : '— بدون شورت‌کد'} — #${p.id}</option>`).join('');
+      const currentPageUrl = S.editorPageUrl || '';
+      const defaultProductOptions = products.map(p => `<option value="${p.id}" ${String(p.id) === String(S.defaultProductId) ? 'selected' : ''}>${esc(p.title)} — ${p.status === 'private' ? 'خصوصی' : 'عمومی'} ${p.is_designable ? '✓ قابل طراحی' : ''} — ${money(p.price)} — #${p.id}</option>`).join('');
+      const currentProductUrl = S.defaultProductUrl || '';
+
       pane.innerHTML = `
         <div class="cd-card">
           <div class="cd-card-head"><span class="cd-card-title">${ic('sliders', 17)} تنظیمات عمومی</span></div>
+
+          <div class="cd-sec-title"><span class="cd-sec-bar"></span> اتصال ووکامرس</div>
+          <div class="cd-fields cd-fields-2" style="max-width:720px">
+            <label class="cd-field">صفحه ادیتور [case_designer]
+              <select class="cd-input" id="setEditorPage">
+                <option value="0">— انتخاب کنید —</option>
+                ${editorPageOptions}
+              </select>
+              ${pagesErr ? '<span class="cd-helper" style="color:var(--cd-bad)">خطا در دریافت برگه‌ها</span>' : ''}
+            </label>
+            <label class="cd-field">محصول پیش‌فرض
+              <select class="cd-input" id="setDefaultProduct">
+                <option value="0">— انتخاب کنید —</option>
+                ${defaultProductOptions}
+              </select>
+              ${productsErr ? '<span class="cd-helper" style="color:var(--cd-bad)">خطا در دریافت محصولات</span>' : ''}
+            </label>
+          </div>
+
           <div class="cd-sec-title"><span class="cd-sec-bar"></span> چاپ و پیش‌نمایش</div>
           <div class="cd-fields cd-fields-2">
             <label class="cd-field">DPI پیش‌فرض چاپ<input type="number" class="cd-input" id="setDpi" value="${S.defaultDpi || 300}" min="72" max="600"><span class="cd-helper">رزولوشن فایل ارسالی به چاپخانه</span></label>
@@ -997,6 +1111,7 @@
           <div class="cd-fields" style="max-width:640px">
             <label class="cd-field">رنگ کادر «فضای چاپ»${seg('print', this.tmp.printColor)}</label>
             <label class="cd-field">رنگ کادر «فضای دوربین»${seg('cam', this.tmp.camColor)}</label>
+            <label class="cd-field">رنگ کادر «فریم اصلی طرح»${seg('main', this.tmp.mainColor)}</label>
           </div>
           <div class="cd-sec-title" style="margin-top:18px"><span class="cd-sec-bar"></span> رفتار ادیتور</div>
           <div class="cd-switch-row">
@@ -1029,9 +1144,12 @@
           defaultDpi: +q('#setDpi').value || 300,
           printColor: this.tmp.printColor,
           camColor: this.tmp.camColor,
+          mainColor: this.tmp.mainColor,
           guidesNote: q('#setNote').value,
           guidesOn: q('#setGuidesOn').checked,
           restoreDraft: q('#setRestoreDraft').checked,
+          editorPageId: +q('#setEditorPage').value || 0,
+          defaultProductId: +q('#setDefaultProduct').value || 0,
         };
         if (!IS_WP) { s.storeName = q('#setStore').value || 'فروشگاه'; s.currency = q('#setCurrency').value || 'تومان'; }
         const { ok } = await guarded(() => Store.saveSettings(s));
