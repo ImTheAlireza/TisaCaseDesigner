@@ -49,7 +49,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.14';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.15';
 
   /* ---------------- آیکن‌های SVG خطی درون‌خطی (stroke 2، سر گرد) ---------------- */
   const ICONS = {
@@ -1055,9 +1055,11 @@
         ${COLOR_PALETTE.map(p => `<button type="button" class="cd-seg-opt ${p.c === cur ? 'active' : ''}" data-color="${p.c}"><span class="cd-swatch" style="background:${p.c}"></span>${p.n}</button>`).join('')}
       </div>`;
 
-      // لیست برگه‌ها برای انتخاب صفحه ادیتور
+      // لیست برگه‌ها و محصولات برای انتخاب
       let pages = [];
       let pagesErr = false;
+      let products = [];
+      let productsErr = false;
       if (IS_WP) {
         try {
           pages = await api('GET', '/pages');
@@ -1065,10 +1067,18 @@
           pagesErr = true;
           pages = [];
         }
+        try {
+          products = await api('GET', '/products');
+        } catch (e) {
+          productsErr = true;
+          products = [];
+        }
       }
 
       const editorPageOptions = pages.map(p => `<option value="${p.id}" ${String(p.id) === String(S.editorPageId) ? 'selected' : ''}>${esc(p.title)} ${p.has_shortcode ? '✓ [case_designer]' : '— بدون شورت‌کد'} — #${p.id}</option>`).join('');
       const currentPageUrl = S.editorPageUrl || '';
+      const defaultProductOptions = products.map(p => `<option value="${p.id}" ${String(p.id) === String(S.defaultProductId) ? 'selected' : ''}>${esc(p.title)} — ${p.status === 'private' ? 'خصوصی' : 'عمومی'} ${p.is_designable ? '✓ قابل طراحی' : ''} — ${money(p.price)} — #${p.id}</option>`).join('');
+      const currentProductUrl = S.defaultProductUrl || '';
 
       pane.innerHTML = `
         <div class="cd-card">
@@ -1090,13 +1100,24 @@
               <span class="cd-helper">این برگه جایی است که مشتری طراحی می‌کند. باید شورت‌کد [case_designer] داشته باشد. بعد از انتخاب، لینک‌های «طراحی قاب» در محصولات به این صفحه می‌روند.</span>
               ${pagesErr ? '<span class="cd-helper" style="color:var(--cd-bad)">دریافت لیست برگه‌ها ناموفق بود — مطمئن شو REST فعال است.</span>' : ''}
             </label>
+            <label class="cd-field">محصول پیش‌فرض خصوصی (برای ورود مستقیم از هدر)
+              <select class="cd-input" id="setDefaultProduct">
+                <option value="0">— انتخاب کنید —</option>
+                ${defaultProductOptions}
+              </select>
+              <span class="cd-helper">وقتی کاربر مستقیم از هدر وارد قاب‌ساز می‌شود (بدون رفتن به صفحه محصول)، این محصول خصوصی به سبد اضافه می‌شود. محصول را روی «خصوصی» بگذار تا در فروشگاه دیده نشود، ولی قابل خرید باشد. این محصول صرفاً برای اتصال طرح به سفارش است.</span>
+              ${productsErr ? '<span class="cd-helper" style="color:var(--cd-bad)">دریافت لیست محصولات ناموفق بود.</span>' : ''}
+              ${S.defaultProductId ? `<span class="cd-helper">انتخاب شده: <b>#${S.defaultProductId}</b> — <a href="${esc(currentProductUrl)}" target="_blank">${esc(currentProductUrl)}</a></span>` : ''}
+            </label>
             <label class="cd-field">
               <span class="cd-helper">
-                <b>چک‌لیست ثبت سفارش:</b><br>
-                ۱) یک برگه بساز با شورت‌کد [case_designer] و اینجا انتخاب کن<br>
-                ۲) محصول ووکامرس بساز و در ویرایش محصول (سایدبار یا تب عمومی) تیک «قاب قابل طراحی» را بزن — این متای _case_designable است<br>
-                ۳) در تب موکاپ‌ها، برای هر مدل شناسه محصول ووکامرس متصل را وارد کن<br>
-                ۴) تنظیمات > پیوندهای یکتا را یک بار ذخیره کن تا REST مسیرها فعال شوند
+                <b>چک‌لیست ثبت سفارش (حالت خصوصی):</b><br>
+                ۱) یک برگه بساز با شورت‌کد [case_designer] و اینجا انتخاب کن (صفحه ادیتور)<br>
+                ۲) یک محصول ساده بساز، قیمت بگذار (مثلاً 668000)، وضعیت را «خصوصی» بگذار و در تب «قاب‌ساز» تیک «قاب قابل طراحی» را بزن — این محصول در فروشگاه دیده نمی‌شود<br>
+                ۳) همین محصول را به عنوان «محصول پیش‌فرض خصوصی» در بالا انتخاب کن<br>
+                ۴) در هدر سایت لینک به صفحه ادیتور بده (مثلاً /طرح-قاب-تیسا/) — مشتری از هدر وارد می‌شود، مدل انتخاب می‌کند، طراحی می‌کند، افزودن به سبد می‌زند → همین محصول خصوصی با طرحش به سبد می‌رود<br>
+                ۵) در تب موکاپ‌ها، شناسه محصول متصل را لازم نیست برای هر مدل بزنی اگر محصول پیش‌فرض ست باشد (ولی می‌توانی هم بزنی)<br>
+                ۶) تنظیمات > پیوندهای یکتا را یک بار ذخیره کن
               </span>
             </label>
           </div>
@@ -1148,6 +1169,7 @@
           guidesOn: q('#setGuidesOn').checked,
           restoreDraft: q('#setRestoreDraft').checked,
           editorPageId: +q('#setEditorPage').value || 0,
+          defaultProductId: +q('#setDefaultProduct').value || 0,
         };
         if (!IS_WP) { s.storeName = q('#setStore').value || 'فروشگاه'; s.currency = q('#setCurrency').value || 'تومان'; }
         const { ok } = await guarded(() => Store.saveSettings(s));

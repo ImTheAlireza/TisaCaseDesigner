@@ -3,7 +3,7 @@
  * Plugin Name: قاب‌ساز تیساکیس — طراحی قاب گوشی
  * Plugin URI:  https://tisacase.com
  * Description: ادیتور طراحی قاب گوشی با دو کادر راهنما (چاپ/دوربین)، پیش‌نمایش با برش نمایشی دوربین و فایل چاپ کاملِ بدون برش برای چاپخانه + یکپارچگی کامل با ووکامرس.
- * Version:     1.6.14
+ * Version:     1.6.15
  * Author:      TisaCase
  * Text Domain: case-designer
  * Domain Path: /languages
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // نسخهٔ استایل/اسکریپت (cache-buster) — همیشه با «Version:» هدر بالا هم‌سطح بماند،
 // وگرنه مرورگرها CSS/JS قدیمی را از کش سرویس می‌کنند و فیکس‌ها دیده نمی‌شوند.
-define( 'CASE_DESIGNER_VERSION', '1.6.14' );
+define( 'CASE_DESIGNER_VERSION', '1.6.15' );
 define( 'CASE_DESIGNER_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CASE_DESIGNER_URL', plugin_dir_url( __FILE__ ) );
 
@@ -72,16 +72,18 @@ class Case_Designer_Assets {
 		$models = class_exists( 'Case_Designer_CPT' ) ? Case_Designer_CPT::all_models() : array();
 
 		wp_localize_script( 'case-designer-data', 'CaseDesignerData', array(
-			'restUrl'   => esc_url_raw( rest_url( 'case-designer/v1' ) ),
-			'nonce'     => wp_create_nonce( 'wp_rest' ),
-			'settings'  => get_option( 'case_designer_settings', array() ),
-			'storeName' => get_bloginfo( 'name' ),
-			'currency'  => function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : 'تومان',
-			'cartUrl'   => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '',
-			'cartCount' => ( function_exists( 'WC' ) && WC()->cart ) ? WC()->cart->get_cart_contents_count() : 0,
-			'models'    => $models,
-			'stickers'  => class_exists( 'Case_Designer_CPT' ) ? Case_Designer_CPT::list_items( 'case_sticker' ) : array(),
-			'designs'   => class_exists( 'Case_Designer_CPT' ) ? Case_Designer_CPT::list_items( 'case_design' ) : array(),
+			'restUrl'          => esc_url_raw( rest_url( 'case-designer/v1' ) ),
+			'nonce'            => wp_create_nonce( 'wp_rest' ),
+			'settings'         => get_option( 'case_designer_settings', array() ),
+			'storeName'        => get_bloginfo( 'name' ),
+			'currency'         => function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : 'تومان',
+			'cartUrl'          => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '',
+			'cartCount'        => ( function_exists( 'WC' ) && WC()->cart ) ? WC()->cart->get_cart_contents_count() : 0,
+			'models'           => $models,
+			'stickers'         => class_exists( 'Case_Designer_CPT' ) ? Case_Designer_CPT::list_items( 'case_sticker' ) : array(),
+			'designs'          => class_exists( 'Case_Designer_CPT' ) ? Case_Designer_CPT::list_items( 'case_design' ) : array(),
+			'defaultProductId' => (int) get_option( 'case_designer_default_product', 0 ),
+			'editorPageId'     => (int) get_option( 'case_designer_editor_page', 0 ),
 		) );
 	}
 	public static function enqueue_admin() {

@@ -133,6 +133,8 @@ class Case_Designer_REST {
 				$s = get_option( 'case_designer_settings', array() );
 				$s['editorPageId'] = (int) get_option( 'case_designer_editor_page', 0 );
 				$s['editorPageUrl'] = $s['editorPageId'] ? get_permalink( $s['editorPageId'] ) : '';
+				$s['defaultProductId'] = (int) get_option( 'case_designer_default_product', 0 );
+				$s['defaultProductUrl'] = $s['defaultProductId'] ? get_permalink( $s['defaultProductId'] ) : '';
 				return $s;
 			},
 			'permission_callback' => array( __CLASS__, 'can_manage' ),
@@ -141,7 +143,7 @@ class Case_Designer_REST {
 		register_rest_route( $ns, '/settings', array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => function ( WP_REST_Request $req ) {
-				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId' );
+				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId', 'defaultProductId' );
 				$clean   = array();
 				foreach ( $allowed as $key ) {
 					if ( isset( $req[ $key ] ) ) {
@@ -150,6 +152,9 @@ class Case_Designer_REST {
 						} elseif ( 'editorPageId' === $key ) {
 							$clean[ $key ] = (int) $req[ $key ];
 							update_option( 'case_designer_editor_page', (int) $req[ $key ] );
+						} elseif ( 'defaultProductId' === $key ) {
+							$clean[ $key ] = (int) $req[ $key ];
+							update_option( 'case_designer_default_product', (int) $req[ $key ] );
 						} else {
 							$clean[ $key ] = sanitize_text_field( $req[ $key ] );
 						}
@@ -176,6 +181,30 @@ class Case_Designer_REST {
 						'title'        => $p->post_title ?: '(بدون عنوان)',
 						'url'          => get_permalink( $p->ID ),
 						'has_shortcode' => $has_shortcode,
+					);
+				}
+				return $out;
+			},
+			'permission_callback' => array( __CLASS__, 'can_manage' ),
+		) );
+
+		// لیست محصولات ووکامرس برای انتخاب محصول پیش‌فرض خصوصی
+		register_rest_route( $ns, '/products', array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => function () {
+				if ( ! function_exists( 'wc_get_products' ) ) {
+					return array();
+				}
+				$products = wc_get_products( array( 'limit' => 100, 'status' => array( 'publish', 'private' ), 'orderby' => 'date', 'order' => 'DESC' ) );
+				$out = array();
+				foreach ( $products as $p ) {
+					$out[] = array(
+						'id'           => $p->get_id(),
+						'title'        => $p->get_name() ?: '(بدون عنوان)',
+						'price'        => $p->get_price(),
+						'status'       => $p->get_status(),
+						'is_designable'=> 'yes' === get_post_meta( $p->get_id(), '_case_designable', true ),
+						'url'          => get_permalink( $p->get_id() ),
 					);
 				}
 				return $out;

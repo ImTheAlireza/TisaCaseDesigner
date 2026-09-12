@@ -652,9 +652,13 @@ const EditorApp = {
         const CD = window.CaseDesignerData;
         const rootEl = document.getElementById('case-designer-root');
         const fromUrl = parseInt(new URLSearchParams(location.search).get('product_id'), 10) || 0;
-        const productId = m.productId || (rootEl ? parseInt(rootEl.dataset.productId, 10) || 0 : 0) || fromUrl;
+        let productId = m.productId || (rootEl ? parseInt(rootEl.dataset.productId, 10) || 0 : 0) || fromUrl;
+        // حالت خصوصی: اگر کاربر مستقیم از هدر وارد شده و product_id ندارد، از محصول پیش‌فرض استفاده کن
         if (!productId) {
-          return toast('برای این مدل هنوز محصول ووکامرس متصل نشده است — در پنل مدیریت «محصول متصل» را ثبت کنید', 'error');
+          productId = CD.defaultProductId || (CD.settings && CD.settings.defaultProductId) || 0;
+        }
+        if (!productId) {
+          return toast('برای این مدل هنوز محصول ووکامرس متصل نشده است — در تنظیمات قاب‌ساز > محصول پیش‌فرض خصوصی را انتخاب کنید یا در تب موکاپ‌ها «محصول متصل» را ثبت کنید', 'error');
         }
         const btn = veil.querySelector('#btnAddCart');
         btn.disabled = true;
