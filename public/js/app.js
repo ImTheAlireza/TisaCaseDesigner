@@ -117,11 +117,12 @@ const EditorApp = {
     $('#editorModelName').textContent = model.name;
     const priceEl = $('#editorModelPrice');
     if (priceEl) priceEl.textContent = money(model.price);
-    const holder = $('#canvasHolder');
-    // اندازهٔ واقعی ناحیهٔ دید؛ اگر لِیاوت هنوز نبسته باشد (۰ یا خیلی کوچک) فالبک می‌دهیم
-    // و ResizeObserver + ری‌فیتِ دو-فریمیِ ادیتور بعداً اندازهٔ درست را اعمال می‌کنند
-    const W = Math.max(holder.clientWidth - 4, 400);
-    const H = Math.max(holder.clientHeight - 4, 320);
+    // اندازه از تک‌منبعِ ادیتور (EditorEngine.measure) تا با resize هیچ‌وقت دو
+    // عدد متفاوت روی بوم ننشیند؛ اگر لِیاوت هنوز نبسته باشد فالبک می‌دهیم و
+    // ResizeObserver + ری‌فیتِ دو-فریمیِ ادیتور بعداً اندازهٔ درست را اعمال می‌کند
+    const { w, h } = EditorEngine.measure();
+    const W = w > 100 ? w : 400;
+    const H = h > 100 ? h : 320;
     this.E = EditorEngine.init($('#designCanvas'), model, W, H);
     this.renderPanels();
     this.setPreviewMode(false);
@@ -363,8 +364,8 @@ const EditorApp = {
     $('#btnFit').addEventListener('click', () => {
       const c = this.E.canvas;
       c.setViewportTransform([1, 0, 0, 1, 0, 0]); // ریست پن
-      c.setZoom(this.E.fitScale);
       this.E.state.zoom = 1;
+      c.setZoom(1);   // فیت = زومِ کاربر ۱ (fitScale در geometry پخته است، نه در زوم)
       $('#zoomInfo').textContent = '100٪';
       c.requestRenderAll();
     });
@@ -374,24 +375,11 @@ const EditorApp = {
       DB.save(db);
       this.E.setGuidesVisible(db.settings.guidesOn);
       $('#btnGuides').classList.toggle('on', db.settings.guidesOn);
-      this.updateGuideHint();
     });
     $('#btnPreview').addEventListener('click', () => this.openPreviewModal());
     $('#btnCheckout').addEventListener('click', () => this.openCartModal());
     $('#btnDraft').addEventListener('click', () => { this.saveDraft(); toast('طرح ذخیره شد <i class="fa-solid fa-floppy-disk"></i>'); });
     $('#btnGuides').classList.toggle('on', DB.get().settings.guidesOn !== false);
-    this.updateGuideHint();
-  },
-
-  updateGuideHint() {
-    const on = DB.get().settings.guidesOn !== false;
-    const hint = $('#guideHint');
-    if (hint) {
-      hint.querySelector('.dot-hint').style.background = on ? 'var(--brand)' : 'var(--ink3)';
-      hint.querySelector('span:last-child').textContent = on
-        ? 'کادرهای راهنما: فضای چاپ و فضای دوربین — فقط راهنما؛ طرح روی دوربین هم قابل قرارگیری است'
-        : 'کادرهای راهنما غیرفعال شده‌اند';
-    }
   },
 
   bindGlobalKeys() {
@@ -436,13 +424,14 @@ const EditorApp = {
   },
   zoomBy(f) {
     const c = this.E.canvas;
-    let z = c.getZoom() * f;
-    z = Math.min(Math.max(z, this.E.fitScale * 0.4), this.E.fitScale * 6);
+    // زوم روی مقیاسِ «نسبت به فیت» اعمال می‌شود؛ viewport zoom دیگر fitScale در خودش ندارد
+    let z = this.E.state.zoom * f;
+    z = Math.min(Math.max(z, this.E.ZOOM_MIN), this.E.ZOOM_MAX);
     const cc = c.getCenter(); // مرکز دید (با احتساب پن)
     c.zoomToPoint(new fabric.Point(cc.left, cc.top), z);
-    this.E.state.zoom = z / this.E.fitScale;
+    this.E.state.zoom = z;
     this.E.clampViewport();
-    $('#zoomInfo').textContent = Math.round(this.E.state.zoom * 100) + '٪';
+    $('#zoomInfo').textContent = Math.round(z * 100) + '٪';
   },
 
   /* ---------- پنل ویژگی‌ها (سمت چپ، پایین‌تر از ابزارها) ---------- */
@@ -466,7 +455,9 @@ const EditorApp = {
           ${fams.map(f => `<option ${o.fontFamily === f ? 'selected' : ''}>${f}</option>`).join('')}
         </select></div>
         <div class="field"><label>اندازه</label>
-          <input type="number" class="input" id="inspSize" value="${Math.round(o.fontSize * this.E.fitScale)}" min="8" max="400"></div>
+          <!-- عدد به «پیکسلِ تصویر موکاپ» نشان داده می‌شود (img space) تا نه با اندازهٔ
+               پنجره عوض شود و نه با زوم — همان چیزی که روی فایل چاپ هم می‌افتد -->
+          <input type="number" class="input" id="inspSize" value="${Math.round(o.fontSize / (this.E.fitScale || 1))}" min="8" max="400"></div>
         <div class="field"><label>رنگ متن</label><div class="row" id="inspColors">
           ${['#111827', '#ffffff', '#e64553', '#f59e0b', '#10b981', '#2563eb', '#7c5cff', '#ec4899'].map(c =>
             `<div class="swatch ${o.fill === c ? 'active' : ''}" data-c="${c}" style="background:${c}"></div>`).join('')}
@@ -489,7 +480,7 @@ const EditorApp = {
       if (o.type === 'textbox') {
         o.set({
           fontFamily: $('#inspFont').value,
-          fontSize: (+$('#inspSize').value || 24) / this.E.fitScale,
+          fontSize: (+$('#inspSize').value || 24) * (this.E.fitScale || 1),   // img → world
         });
         const w = o.width;
         o.set('width', Math.max(w, o.calcTextWidth() + 20));
@@ -506,7 +497,9 @@ const EditorApp = {
     if (fontSel) fontSel.addEventListener('change', apply);
     if (sizeEl) sizeEl.addEventListener('change', apply);
     $$('#inspColors .swatch').forEach(s => s.addEventListener('click', () => {
-      o.set('fill', s.dataset.c);
+      // وقتی کاربر رنگ را عوض می‌کند، stroke را حذف می‌کنیم تا رنگ دقیقاً همان باشد که انتخاب کرده
+      // (متن پیش‌فرض با stroke سفید برای دیده شدن روی هر موکاپ است، ولی رنگ انتخابی کاربر بدون stroke)
+      o.set({ fill: s.dataset.c, stroke: null, shadow: null });
       this.E.canvas.requestRenderAll();
       this.E.onObjectChanged();
       this.renderInspector();
@@ -580,10 +573,10 @@ const EditorApp = {
 
   async openPreviewModal() {
     if (!this.E.layers().length) return toast('اول چیزی روی قاب قرار بدهید <i class="fa-regular fa-face-smile-wink"></i>', 'error');
-    // منتظر آماده‌شدن تصویر برش‌خورده‌ی پیش‌نمایش بمان (در غیر این صورت تامبنیل خالی می‌افتد)
-    await this.E.enterPreview();
-    const thumb = this.E.exportPreviewThumb(true);
-    this.E.exitPreview();
+    // پیش‌نمایش جدید: موکاپ همیشه وسط و بزرگ، همراه با ماسک‌ها
+    // فیکس باگ: قبلاً enterPreview لایه‌ها را پاک می‌کرد و exportPreviewThumb فقط موکاپ را برمی‌گرداند
+    // الان مستقیم از لایه‌های موجود thumb می‌گیریم (مثل مودال سبد خرید که درست کار می‌کرد)
+    const thumb = await this.E.exportPreviewThumb(true);
     const m = this.model;
     const veil = modal(`
       <div class="modal-head"><i class="fa-solid fa-eye"></i> پیش‌نمایش نهایی <button class="x" data-close><i class="fa-solid fa-xmark"></i></button></div>
@@ -617,7 +610,7 @@ const EditorApp = {
     try { print = await this.E.exportPrint({ dpi: 300 }); }
     catch (e) { printErr = e; print = await this.E.exportPrint({ dpi: 150 }); }
     const designJson = this.E.serialize();
-    const pv = this.E.exportPreviewThumb(true);
+    const pv = await this.E.exportPreviewThumb(true);
     const veil = modal(`
       <div class="modal-head"><i class="fa-solid fa-cart-shopping"></i> افزودن به سبد خرید <button class="x" data-close><i class="fa-solid fa-xmark"></i></button></div>
       <div class="modal-body">
@@ -638,7 +631,7 @@ const EditorApp = {
         <div class="sum-row"><span>مدل</span><b>${esc(m.name)}</b></div>
         <div class="sum-row"><span>قیمت</span><b>${money(m.price)}</b></div>
         <div class="sum-row"><span>رزولوشن فایل چاپ</span><b>${print.mmToPx} DPI — ${faNum(print.width)}×${faNum(print.height)} پیکسل</b></div>
-        <div class="sum-row" style="border:none"><span>ابعاد چاپ</span><b>${faNum(m.mockup.printMm.w)}×${faNum(m.mockup.printMm.h)} میلی‌متر</b></div>
+        <div class="sum-row" style="border:none"><span>ابعاد چاپ</span><b>${faNum(print.mmW || m.mockup.printMm.w)}×${faNum(print.mmH || m.mockup.printMm.h)} میلی‌متر${print.usingMain ? " — فریم اصلی" : ""}</b></div>
         ${printErr ? `<div class="note-box warn" style="margin-top:10px">حجم ذخیره‌سازی محدود بود؛ فایل با ۱۵۰DPI ذخیره شد.</div>` : ''}
       </div>
       <div class="modal-foot">

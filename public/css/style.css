@@ -1,11 +1,11 @@
  
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../public/fonts/Vazirmatn-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/Vazirmatn-Regular.woff2') format('woff2'); }
 
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../public/fonts/Vazirmatn-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/Vazirmatn-Medium.woff2') format('woff2'); }
 
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../public/fonts/Vazirmatn-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/Vazirmatn-Bold.woff2') format('woff2'); }
 
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 900; font-display: swap; src: url('../public/fonts/Vazirmatn-Black.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 900; font-display: swap; src: url('../fonts/Vazirmatn-Black.woff2') format('woff2'); }
 #case-designer-root{
   --bg: #f7f8fc;
   --panel: #ffffff;
@@ -166,10 +166,12 @@
 }
 #case-designer-root .ed-sep{ width: 1px; height: 22px; background: rgba(31, 38, 135, .14); margin: 0 5px; }
 
-/* اینسپکتور شناور — فقط وقتی لایه‌ای انتخاب شده */
+/* اینسپکتور شناور — فقط وقتی لایه‌ای انتخاب شده. بالا-راست (inset-inline-start در RTL
+   می‌شود سمت راست)؛ پایینِ بوم را آزاد می‌گذارد تا نوار وضعیت و انگشت کاربر مزاحم نباشد.
+   z-index بالای نوار ابزار شناور: پنل روی نوار نمی‌افتد. */
 #case-designer-root .ed-inspector{
-  position: absolute; bottom: 46px; inset-inline-start: 12px; z-index: 14;
-  width: 262px; max-height: 46%; overflow-y: auto;
+  position: absolute; top: 12px; inset-inline-start: 12px; z-index: 16;
+  width: 262px; max-height: calc(100% - 24px); overflow-y: auto;
   background: rgba(255, 255, 255, .85);
   backdrop-filter: blur(16px) saturate(170%);
   -webkit-backdrop-filter: blur(16px) saturate(170%);
@@ -252,15 +254,6 @@
 #case-designer-root .zoom-info{ font-size: 12px; color: var(--ink3); min-width: 44px; text-align: center; }
 #case-designer-root #canvasHolder{ flex: 1; overflow: hidden; position: relative; }
 #case-designer-root #designCanvas{ display: block; }
-#case-designer-root .guide-hint{
-  position: absolute; top: 12px; inset-inline-start: 12px;
-  background: rgba(30, 36, 62, .72); color: #fff; font-size: 12px; padding: 7px 16px;
-  border-radius: 99px; display: flex; align-items: center; gap: 8px; z-index: 12; pointer-events: none;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, .25);
-}
-#case-designer-root .dot-hint{ width: 8px; height: 8px; border-radius: 99px; }
 #case-designer-root .btn{
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   border-radius: 12px; padding: 10px 18px; font-size: 13.5px; font-weight: 800; transition: .17s;
@@ -402,12 +395,29 @@
 #case-designer-root .modal-foot{ display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--glass-border); justify-content: flex-end; background: rgba(255, 255, 255, .22); }
 #case-designer-root .preview-stage{ display: grid; grid-template-columns: 1fr 320px; gap: 0; }
 #case-designer-root .preview-canvas{
-  padding: 24px; display: grid; place-items: center; min-height: 380px;
+  padding: 24px; display: grid; place-items: center; min-height: 420px;
   background: radial-gradient(600px 400px at 30% 20%, rgba(48, 79, 254, .12), transparent 60%),
               radial-gradient(500px 400px at 80% 90%, rgba(237, 25, 68, .1), transparent 60%),
-              rgba(255, 255, 255, .25);
+              rgba(255, 255, 255, .35);
 }
-#case-designer-root .preview-canvas img{ max-height: 520px; border-radius: 18px; box-shadow: 0 20px 44px rgba(31, 38, 135, .25); }
+#case-designer-root .preview-canvas img{
+  max-height: 560px; max-width: 100%; width: auto; height: auto;
+  object-fit: contain; object-position: center;
+  border-radius: 22px; box-shadow: 0 24px 48px rgba(31, 38, 135, .28);
+  display: block; margin: 0 auto;
+}
+#case-designer-root .modal.wide .preview-canvas{
+  min-height: 0; padding: 14px; background: rgba(255,255,255,.45);
+}
+#case-designer-root .modal.wide .preview-canvas img{
+  max-height: 420px; border-radius: 16px;
+}
+#case-designer-root .preview-stage .preview-canvas{
+  min-height: 520px; padding: 28px;
+}
+#case-designer-root .preview-stage .preview-canvas img{
+  max-height: 620px;
+}
 #case-designer-root .preview-side{ padding: 20px; border-inline-start: 1px solid var(--glass-border); background: rgba(255, 255, 255, .25); }
 #case-designer-root .note-box{
   border: 1px solid var(--glass-border); border-radius: 13px; padding: 12px; font-size: 12.5px;
@@ -581,7 +591,7 @@
 #case-designer-root .preview-stage{ grid-template-columns: 1fr; }
 #case-designer-root .ed-float{ top: 8px; padding: 4px 6px; }
 #case-designer-root .ed-float .tbtn{ width: 30px; height: 30px; font-size: 14px; }
-#case-designer-root .ed-inspector{ width: 230px; bottom: 42px; }}
+#case-designer-root .ed-inspector{ width: 216px; top: 52px; max-height: calc(100% - 60px); }}
 #case-designer-root {
   position: relative;
   min-height: 100vh;

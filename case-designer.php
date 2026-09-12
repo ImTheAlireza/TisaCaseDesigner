@@ -3,7 +3,7 @@
  * Plugin Name: قاب‌ساز تیساکیس — طراحی قاب گوشی
  * Plugin URI:  https://tisacase.com
  * Description: ادیتور طراحی قاب گوشی با دو کادر راهنما (چاپ/دوربین)، پیش‌نمایش با برش نمایشی دوربین و فایل چاپ کاملِ بدون برش برای چاپخانه + یکپارچگی کامل با ووکامرس.
- * Version:     1.6.1
+ * Version:     1.6.13
  * Author:      TisaCase
  * Text Domain: case-designer
  * Domain Path: /languages
@@ -16,13 +16,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // دسترسی مستقیم ممنوع
 }
 
-define( 'CASE_DESIGNER_VERSION', '1.5.0' );
+// نسخهٔ استایل/اسکریپت (cache-buster) — همیشه با «Version:» هدر بالا هم‌سطح بماند،
+// وگرنه مرورگرها CSS/JS قدیمی را از کش سرویس می‌کنند و فیکس‌ها دیده نمی‌شوند.
+define( 'CASE_DESIGNER_VERSION', '1.6.13' );
 define( 'CASE_DESIGNER_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CASE_DESIGNER_URL', plugin_dir_url( __FILE__ ) );
 
 require_once CASE_DESIGNER_PATH . 'includes/class-cpt.php';
 require_once CASE_DESIGNER_PATH . 'includes/class-rest.php';
 require_once CASE_DESIGNER_PATH . 'includes/class-woo.php';
+require_once CASE_DESIGNER_PATH . 'includes/class-updater.php';
 require_once CASE_DESIGNER_PATH . 'admin/class-case-admin.php';
 
 /**
@@ -32,6 +35,7 @@ Case_Designer_CPT::init();
 Case_Designer_REST::init();
 Case_Designer_Woo::init();
 Case_Designer_Admin::init();
+Case_Designer_Updater::init();
 
 /**
  * شورت‌کد صفحه‌ی ادیتور در فرانت‌اند: [case_designer]

@@ -130,7 +130,10 @@ class Case_Designer_REST {
 		register_rest_route( $ns, '/settings', array(
 			'methods'             => WP_REST_Server::READABLE,
 			'callback'            => function () {
-				return get_option( 'case_designer_settings', array() );
+				$s = get_option( 'case_designer_settings', array() );
+				$s['editorPageId'] = (int) get_option( 'case_designer_editor_page', 0 );
+				$s['editorPageUrl'] = $s['editorPageId'] ? get_permalink( $s['editorPageId'] ) : '';
+				return $s;
 			},
 			'permission_callback' => array( __CLASS__, 'can_manage' ),
 		) );
@@ -138,15 +141,44 @@ class Case_Designer_REST {
 		register_rest_route( $ns, '/settings', array(
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => function ( WP_REST_Request $req ) {
-				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'guidesNote', 'storeName', 'currency' );
+				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId' );
 				$clean   = array();
 				foreach ( $allowed as $key ) {
 					if ( isset( $req[ $key ] ) ) {
-						$clean[ $key ] = sanitize_text_field( $req[ $key ] );
+						if ( in_array( $key, array( 'guidesOn', 'restoreDraft' ), true ) ) {
+							$clean[ $key ] = (bool) $req[ $key ];
+						} elseif ( 'editorPageId' === $key ) {
+							$clean[ $key ] = (int) $req[ $key ];
+							update_option( 'case_designer_editor_page', (int) $req[ $key ] );
+						} else {
+							$clean[ $key ] = sanitize_text_field( $req[ $key ] );
+						}
 					}
 				}
-				update_option( 'case_designer_settings', $clean );
-				return $clean;
+				$existing = get_option( 'case_designer_settings', array() );
+				$merged   = array_merge( $existing, $clean );
+				update_option( 'case_designer_settings', $merged );
+				return $merged;
+			},
+			'permission_callback' => array( __CLASS__, 'can_manage' ),
+		) );
+
+		// لیست برگه‌ها برای انتخاب صفحه ادیتور
+		register_rest_route( $ns, '/pages', array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => function () {
+				$pages = get_pages( array( 'post_status' => 'publish', 'number' => 100 ) );
+				$out   = array();
+				foreach ( $pages as $p ) {
+					$has_shortcode = has_shortcode( $p->post_content, 'case_designer' );
+					$out[] = array(
+						'id'           => $p->ID,
+						'title'        => $p->post_title ?: '(بدون عنوان)',
+						'url'          => get_permalink( $p->ID ),
+						'has_shortcode' => $has_shortcode,
+					);
+				}
+				return $out;
 			},
 			'permission_callback' => array( __CLASS__, 'can_manage' ),
 		) );
@@ -191,9 +223,12 @@ class Case_Designer_REST {
 		// کادرهای پیش‌فرض ارسالی از سمت پنل
 		$mockup = array();
 		if ( ! empty( $p['printRect'] ) ) { $mockup['printRect'] = $p['printRect']; }
+		if ( ! empty( $p['mainRect'] ) ) { $mockup['mainRect'] = $p['mainRect']; }
 		if ( ! empty( $p['camRects'] ) ) { $mockup['camRects'] = $p['camRects']; }
 		if ( ! empty( $p['printMm'] ) ) { $mockup['printMm'] = $p['printMm']; }
+		if ( ! empty( $p['mainMm'] ) ) { $mockup['mainMm'] = $p['mainMm']; }
 		if ( ! empty( $p['dpi'] ) ) { $mockup['dpi'] = (int) $p['dpi']; }
+		if ( ! empty( $p['mainColor'] ) ) { $mockup['mainColor'] = sanitize_text_field( $p['mainColor'] ); }
 		if ( $mockup ) {
 			Case_Designer_CPT::save_mockup( $id, $mockup );
 		}
