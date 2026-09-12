@@ -23,8 +23,6 @@ class Case_Designer_Woo {
 
 	public static function init() {
 		// هوک‌ها را همیشه اضافه می‌کنیم — حتی اگر ووکامرس هنوز لود نشده باشد
-		// چون case-designer.php مستقیم init را صدا می‌زند و ممکن است ووکامرس بعداً لود شود
-		// داخل هر کال‌بک دوباره چک می‌کنیم
 
 		// دکمه‌ی «طراحی قاب» روی صفحه‌ی محصول
 		add_action( 'woocommerce_after_add_to_cart_button', array( __CLASS__, 'designer_button' ) );
@@ -35,9 +33,12 @@ class Case_Designer_Woo {
 		add_action( 'woocommerce_product_options_general_product_data', array( __CLASS__, 'woo_product_checkbox' ) );
 		add_action( 'woocommerce_process_product_meta', array( __CLASS__, 'woo_product_checkbox_save' ) );
 
-		// تب اختصاصی «قاب‌ساز» در اطلاعات محصول — واضح‌تر از چک‌باکس مخفی در تب عمومی
+		// تب اختصاصی «قاب‌ساز» در اطلاعات محصول
 		add_filter( 'woocommerce_product_data_tabs', array( __CLASS__, 'product_data_tab' ), 98 );
 		add_action( 'woocommerce_product_data_panels', array( __CLASS__, 'product_data_panel' ) );
+
+		// محصول خصوصی ولی قابل طراحی باید قابل خرید باشد
+		add_filter( 'woocommerce_is_purchasable', array( __CLASS__, 'make_designable_purchasable' ), 10, 2 );
 
 		// نمایش جزئیات طراحی در سبد خرید و چک‌اوت
 		add_filter( 'woocommerce_get_item_data', array( __CLASS__, 'cart_item_data' ), 10, 2 );
@@ -52,6 +53,15 @@ class Case_Designer_Woo {
 
 		// اندپوینت افزودن به سبد با متادیتای طراحی
 		add_action( 'rest_api_init', array( __CLASS__, 'rest_add_to_cart' ) );
+	}
+
+	public static function make_designable_purchasable( $purchasable, $product ) {
+		if ( ! $product ) return $purchasable;
+		$id = is_object( $product ) && method_exists( $product, 'get_id' ) ? $product->get_id() : (int) $product;
+		if ( $id && 'yes' === get_post_meta( $id, '_case_designable', true ) ) {
+			return true;
+		}
+		return $purchasable;
 	}
 
 	public static function product_data_tab( $tabs ) {
@@ -186,53 +196,130 @@ class Case_Designer_Woo {
 	public static function handle_add_to_cart( WP_REST_Request $req ) {
 		$p = $req->get_json_params();
 
-		// ۱) ذخیره‌ی فایل چاپ (PNG کامل — بدون برش دوربین) در پوشه‌ی اختصاصی
-		$print_url = self::store_print_file( $p['printPng'], $p['modelName'] ?? 'design' );
+		$product_id = isset( $p['product_id'] ) ? (int) $p['product_id'] : 0;
+		$qty        = isset( $p['qty'] ) ? max( 1, (int) $p['qty'] ) : 1;
+
+		// اگر product_id نفرستاده، از محصول پیش‌فرض خصوصی استفاده کن
+		if ( ! $product_id ) {
+			$product_id = (int) get_option( 'case_designer_default_product', 0 );
+		}
+		if ( ! $product_id ) {
+			return new WP_Error( 'no_product', __( 'محصول پیش‌فرض انتخاب نشده است', 'case-designer' ) );
+		}
+
+		// چک وجود محصول
+		$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+		if ( ! $product ) {
+			return new WP_Error( 'bad_product', __( 'محصول یافت نشد', 'case-designer' ) );
+		}
+
+		// لود سبد در context REST (ممکن است WC()->cart null باشد)
+		if ( ! function_exists( 'WC' ) || ! WC() ) {
+			return new WP_Error( 'no_wc', __( 'ووکامرس بارگذاری نشده', 'case-designer' ) );
+		}
+		if ( is_null( WC()->cart ) ) {
+			if ( function_exists( 'wc_load_cart' ) ) {
+				wc_load_cart();
+			} else {
+				if ( defined( 'WC_ABSPATH' ) ) {
+					@include_once WC_ABSPATH . 'includes/wc-cart-functions.php';
+					@include_once WC_ABSPATH . 'includes/class-wc-cart.php';
+					@include_once WC_ABSPATH . 'includes/class-wc-session-handler.php';
+					@include_once WC_ABSPATH . 'includes/class-wc-customer.php';
+				}
+				if ( is_null( WC()->session ) ) {
+					WC()->session = new WC_Session_Handler();
+					WC()->session->init();
+				}
+				if ( is_null( WC()->customer ) ) {
+					WC()->customer = new WC_Customer( get_current_user_id(), true );
+				}
+				if ( is_null( WC()->cart ) ) {
+					WC()->cart = new WC_Cart();
+				}
+			}
+		}
+		if ( is_null( WC()->cart ) ) {
+			return new WP_Error( 'no_cart', __( 'سبد خرید بارگذاری نشد', 'case-designer' ) );
+		}
+
+		// ذخیره فایل‌ها
+		$print_url = self::store_print_file( $p['printPng'] ?? '', $p['modelName'] ?? 'design' );
 		if ( is_wp_error( $print_url ) ) {
 			return $print_url;
 		}
+		$thumb_url = self::store_thumb( $p['thumbPng'] ?? '' );
 
-		// ۲) تامبنیل کوچک برای سبد/سفارش
-		$thumb_url = self::store_thumb( $p['thumbPng'] );
+		$design_json = $p['designJson'] ?? '';
+		if ( is_array( $design_json ) || is_object( $design_json ) ) {
+			$design_json = wp_json_encode( $design_json );
+		}
 
-		// ۳) افزودن به سبد ووکامرس با متادیتای طراحی
 		$cart_item_data = array(
-			self::META_DESIGN     => wp_json_encode( $p['designJson'] ),
+			self::META_DESIGN     => $design_json,
 			self::META_PRINT_FILE => $print_url,
 			self::META_THUMB      => $thumb_url,
-			'model_name'          => sanitize_text_field( $p['modelName'] ),
+			'model_name'          => sanitize_text_field( $p['modelName'] ?? '' ),
 		);
 
-		$key = WC()->cart->add_to_cart( (int) $p['product_id'], (int) $p['qty'], 0, array(), $cart_item_data );
+		// اطمینان از purchasable بودن برای محصول خصوصی قابل طراحی
+		add_filter( 'woocommerce_is_purchasable', function( $purch, $prod ) use ( $product_id ) {
+			if ( $prod && $prod->get_id() === $product_id ) return true;
+			return $purch;
+		}, 99, 2 );
 
-		return $key ? array( 'ok' => true, 'cart_key' => $key, 'cart_url' => wc_get_cart_url() )
-					: new WP_Error( 'cart_failed', __( 'افزودن به سبد ناموفق بود', 'case-designer' ) );
+		try {
+			$key = WC()->cart->add_to_cart( $product_id, $qty, 0, array(), $cart_item_data );
+		} catch ( Exception $e ) {
+			return new WP_Error( 'cart_exception', $e->getMessage() );
+		}
+
+		if ( ! $key ) {
+			return new WP_Error( 'cart_failed', __( 'افزودن به سبد ناموفق بود — محصول قابل خرید نیست یا موجودی ندارد', 'case-designer' ) );
+		}
+
+		return array( 'ok' => true, 'cart_key' => $key, 'cart_url' => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '' );
 	}
 
 	/** ذخیره‌ی فایل چاپ و بازگرداندن URL دائمی */
 	protected static function store_print_file( $base64, $name ) {
+		if ( empty( $base64 ) ) {
+			return new WP_Error( 'no_file', __( 'فایل چاپ خالی است', 'case-designer' ) );
+		}
 		$upload = wp_upload_dir();
 		$dir    = $upload['basedir'] . '/case-designer';
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 		}
 		$file = $dir . '/print-' . uniqid() . '.png';
-		$data = preg_replace( '#^data:image/\w+;base64,#i', '', $base64 );
-		if ( false === file_put_contents( $file, base64_decode( $data ) ) ) {
+		$data = preg_replace( '#^data:image/\w+;base64,#i', '', (string) $base64 );
+		$bin  = base64_decode( $data, true );
+		if ( false === $bin || '' === $bin ) {
+			$bin = base64_decode( (string) $base64, true );
+		}
+		if ( false === $bin || '' === $bin ) {
+			return new WP_Error( 'decode_failed', __( 'فایل چاپ قابل رمزگشایی نیست', 'case-designer' ) );
+		}
+		if ( false === @file_put_contents( $file, $bin ) ) {
 			return new WP_Error( 'write_failed', __( 'ذخیره‌ی فایل چاپ ممکن نشد', 'case-designer' ) );
 		}
 		return $upload['baseurl'] . '/case-designer/' . basename( $file );
 	}
 
 	protected static function store_thumb( $base64 ) {
+		if ( empty( $base64 ) ) return '';
 		$upload = wp_upload_dir();
 		$dir    = $upload['basedir'] . '/case-designer';
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 		}
 		$file = $dir . '/thumb-' . uniqid() . '.jpg';
-		$data = preg_replace( '#^data:image/\w+;base64,#i', '', $base64 );
-		@file_put_contents( $file, base64_decode( $data ) );
+		$data = preg_replace( '#^data:image/\w+;base64,#i', '', (string) $base64 );
+		$bin  = base64_decode( $data, true );
+		if ( false === $bin || '' === $bin ) {
+			$bin = base64_decode( (string) $base64, true );
+		}
+		if ( $bin ) @file_put_contents( $file, $bin );
 		return $upload['baseurl'] . '/case-designer/' . basename( $file );
 	}
 

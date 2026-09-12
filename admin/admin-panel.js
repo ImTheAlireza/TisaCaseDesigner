@@ -49,7 +49,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.15';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.16';
 
   /* ---------------- آیکن‌های SVG خطی درون‌خطی (stroke 2، سر گرد) ---------------- */
   const ICONS = {
@@ -1084,41 +1084,21 @@
         <div class="cd-card">
           <div class="cd-card-head"><span class="cd-card-title">${ic('sliders', 17)} تنظیمات عمومی</span></div>
 
-          <div class="cd-sec-title"><span class="cd-sec-bar"></span> اتصال ووکامرس و صفحه ادیتور</div>
-          <div class="cd-note ${S.editorPageId ? 'cd-note-ok' : 'cd-note-warn'}" style="margin-bottom:12px">
-            ${ic(S.editorPageId ? 'check' : 'warning', 14)}
-            <span>
-              ${S.editorPageId ? `صفحه ادیتور انتخاب شده: <b>#${S.editorPageId}</b> — <a href="${esc(currentPageUrl)}" target="_blank">${esc(currentPageUrl)}</a>` : 'هنوز صفحه ادیتور انتخاب نشده — یک برگه بساز و شورت‌کد [case_designer] را در آن بگذار، بعد اینجا انتخاب کن.'}
-            </span>
-          </div>
+          <div class="cd-sec-title"><span class="cd-sec-bar"></span> اتصال ووکامرس</div>
           <div class="cd-fields cd-fields-2" style="max-width:720px">
-            <label class="cd-field">صفحه ادیتور (برگه با شورت‌کد [case_designer])
+            <label class="cd-field">صفحه ادیتور [case_designer]
               <select class="cd-input" id="setEditorPage">
                 <option value="0">— انتخاب کنید —</option>
                 ${editorPageOptions}
               </select>
-              <span class="cd-helper">این برگه جایی است که مشتری طراحی می‌کند. باید شورت‌کد [case_designer] داشته باشد. بعد از انتخاب، لینک‌های «طراحی قاب» در محصولات به این صفحه می‌روند.</span>
-              ${pagesErr ? '<span class="cd-helper" style="color:var(--cd-bad)">دریافت لیست برگه‌ها ناموفق بود — مطمئن شو REST فعال است.</span>' : ''}
+              ${pagesErr ? '<span class="cd-helper" style="color:var(--cd-bad)">خطا در دریافت برگه‌ها</span>' : ''}
             </label>
-            <label class="cd-field">محصول پیش‌فرض خصوصی (برای ورود مستقیم از هدر)
+            <label class="cd-field">محصول پیش‌فرض
               <select class="cd-input" id="setDefaultProduct">
                 <option value="0">— انتخاب کنید —</option>
                 ${defaultProductOptions}
               </select>
-              <span class="cd-helper">وقتی کاربر مستقیم از هدر وارد قاب‌ساز می‌شود (بدون رفتن به صفحه محصول)، این محصول خصوصی به سبد اضافه می‌شود. محصول را روی «خصوصی» بگذار تا در فروشگاه دیده نشود، ولی قابل خرید باشد. این محصول صرفاً برای اتصال طرح به سفارش است.</span>
-              ${productsErr ? '<span class="cd-helper" style="color:var(--cd-bad)">دریافت لیست محصولات ناموفق بود.</span>' : ''}
-              ${S.defaultProductId ? `<span class="cd-helper">انتخاب شده: <b>#${S.defaultProductId}</b> — <a href="${esc(currentProductUrl)}" target="_blank">${esc(currentProductUrl)}</a></span>` : ''}
-            </label>
-            <label class="cd-field">
-              <span class="cd-helper">
-                <b>چک‌لیست ثبت سفارش (حالت خصوصی):</b><br>
-                ۱) یک برگه بساز با شورت‌کد [case_designer] و اینجا انتخاب کن (صفحه ادیتور)<br>
-                ۲) یک محصول ساده بساز، قیمت بگذار (مثلاً 668000)، وضعیت را «خصوصی» بگذار و در تب «قاب‌ساز» تیک «قاب قابل طراحی» را بزن — این محصول در فروشگاه دیده نمی‌شود<br>
-                ۳) همین محصول را به عنوان «محصول پیش‌فرض خصوصی» در بالا انتخاب کن<br>
-                ۴) در هدر سایت لینک به صفحه ادیتور بده (مثلاً /طرح-قاب-تیسا/) — مشتری از هدر وارد می‌شود، مدل انتخاب می‌کند، طراحی می‌کند، افزودن به سبد می‌زند → همین محصول خصوصی با طرحش به سبد می‌رود<br>
-                ۵) در تب موکاپ‌ها، شناسه محصول متصل را لازم نیست برای هر مدل بزنی اگر محصول پیش‌فرض ست باشد (ولی می‌توانی هم بزنی)<br>
-                ۶) تنظیمات > پیوندهای یکتا را یک بار ذخیره کن
-              </span>
+              ${productsErr ? '<span class="cd-helper" style="color:var(--cd-bad)">خطا در دریافت محصولات</span>' : ''}
             </label>
           </div>
 
