@@ -22,20 +22,21 @@ class Case_Designer_Woo {
 	const META_THUMB      = '_case_thumb';
 
 	public static function init() {
-		if ( ! class_exists( 'WooCommerce' ) ) {
-			return; // ووکامرس فعال نیست
-		}
+		// هوک‌ها را همیشه اضافه می‌کنیم — حتی اگر ووکامرس هنوز لود نشده باشد
+		// چون case-designer.php مستقیم init را صدا می‌زند و ممکن است ووکامرس بعداً لود شود
+		// داخل هر کال‌بک دوباره چک می‌کنیم
+
 		// دکمه‌ی «طراحی قاب» روی صفحه‌ی محصول
 		add_action( 'woocommerce_after_add_to_cart_button', array( __CLASS__, 'designer_button' ) );
 
-		// متاباکس «قاب قابل طراحی» در صفحه‌ی محصول
-		add_action( 'add_meta_boxes', array( __CLASS__, 'add_product_metabox' ) );
+		// متاباکس «قاب قابل طراحی» در صفحه‌ی محصول — با اولویت بالا
+		add_action( 'add_meta_boxes', array( __CLASS__, 'add_product_metabox' ), 10, 2 );
 		add_action( 'save_post_product', array( __CLASS__, 'save_product_metabox' ), 10, 2 );
 		add_action( 'woocommerce_product_options_general_product_data', array( __CLASS__, 'woo_product_checkbox' ) );
 		add_action( 'woocommerce_process_product_meta', array( __CLASS__, 'woo_product_checkbox_save' ) );
 
 		// تب اختصاصی «قاب‌ساز» در اطلاعات محصول — واضح‌تر از چک‌باکس مخفی در تب عمومی
-		add_filter( 'woocommerce_product_data_tabs', array( __CLASS__, 'product_data_tab' ) );
+		add_filter( 'woocommerce_product_data_tabs', array( __CLASS__, 'product_data_tab' ), 98 );
 		add_action( 'woocommerce_product_data_panels', array( __CLASS__, 'product_data_panel' ) );
 
 		// نمایش جزئیات طراحی در سبد خرید و چک‌اوت
@@ -57,7 +58,7 @@ class Case_Designer_Woo {
 		$tabs['case_designer'] = array(
 			'label'    => __( 'قاب‌ساز', 'case-designer' ),
 			'target'   => 'case_designer_product_data',
-			'class'    => array( 'show_if_simple', 'show_if_variable' ),
+			'class'    => array( 'show_if_simple', 'show_if_variable', 'show_if_external' ),
 			'priority' => 90,
 		);
 		return $tabs;
@@ -65,6 +66,9 @@ class Case_Designer_Woo {
 
 	public static function product_data_panel() {
 		global $post;
+		if ( ! $post ) {
+			return;
+		}
 		$val = get_post_meta( $post->ID, '_case_designable', true );
 		$editor_page_id = (int) get_option( 'case_designer_editor_page', 0 );
 		$editor_url = $editor_page_id ? get_permalink( $editor_page_id ) : '';
@@ -75,12 +79,10 @@ class Case_Designer_Woo {
 			. 'برای اینکه دکمه «طراحی قاب» در صفحه محصول نمایش داده شود، تیک زیر را بزنید. سپس در تب موکاپ‌ها، برای هر مدل شناسه همین محصول را وارد کنید.<br>'
 			. ( $editor_page_id ? 'صفحه ادیتور: <a href="' . esc_url( $editor_url ) . '" target="_blank">#' . $editor_page_id . ' — ' . esc_url( $editor_url ) . '</a>' : '<span style="color:#b3261e">هنوز صفحه ادیتور در قاب‌ساز > تنظیمات انتخاب نشده!</span>' )
 			. '</p>';
-		woocommerce_wp_checkbox( array(
-			'id'          => '_case_designable',
-			'label'       => __( 'قاب قابل طراحی', 'case-designer' ),
-			'description' => __( 'دکمه «طراحی قاب» در صفحه محصول نمایش داده شود و مشتری به صفحه ادیتور برود', 'case-designer' ),
-			'desc_tip'    => true,
-		) );
+		// چک‌باکس را دستی می‌نویسیم تا وابسته به woocommerce_wp_checkbox نباشد (اگر ووکامرس لود نشده)
+		echo '<p class="form-field"><label>' . esc_html__( 'قاب قابل طراحی', 'case-designer' ) . '</label>'
+			. '<span class="wrap"><input type="checkbox" id="_case_designable" name="_case_designable" value="yes" ' . checked( $val, 'yes', false ) . ' /> '
+			. '<span class="description">' . esc_html__( 'دکمه «طراحی قاب» در صفحه محصول نمایش داده شود و مشتری به صفحه ادیتور برود', 'case-designer' ) . '</span></span></p>';
 		echo '</div>';
 		echo '<div class="options_group">';
 		echo '<p style="padding:0 12px;color:#555">بعد از فعال‌سازی:<br>۱) محصول را به‌روزرسانی کنید<br>۲) قاب‌ساز > موکاپ‌ها > برای هر مدل، شناسه محصول متصل را همین ID (' . $post->ID . ') بگذارید<br>۳) تنظیمات > پیوندهای یکتا را یک بار ذخیره کنید</p>';
@@ -89,6 +91,7 @@ class Case_Designer_Woo {
 	}
 
 	public static function add_product_metabox() {
+		// حتی اگر ووکامرس نباشد هم باکس را اضافه کن تا کاربر ببیند
 		add_meta_box(
 			'case_designable_box',
 			__( 'قاب‌ساز تیساکیس', 'case-designer' ),
@@ -103,7 +106,7 @@ class Case_Designer_Woo {
 		$val = get_post_meta( $post->ID, '_case_designable', true );
 		$editor_page_id = (int) get_option( 'case_designer_editor_page', 0 );
 		wp_nonce_field( 'case_designable_nonce', 'case_designable_nonce_field' );
-		echo '<label style="font-weight:bold"><input type="checkbox" name="_case_designable" value="yes" ' . checked( $val, 'yes', false ) . '> ' . esc_html__( 'قاب قابل طراحی — دکمه «طراحی قاب» نمایش داده شود', 'case-designer' ) . '</label>';
+		echo '<label style="font-weight:bold;display:block;margin-bottom:8px"><input type="checkbox" name="_case_designable" value="yes" ' . checked( $val, 'yes', false ) . '> ' . esc_html__( 'قاب قابل طراحی — دکمه «طراحی قاب» نمایش داده شود', 'case-designer' ) . '</label>';
 		echo '<p class="description">' . esc_html__( 'این تیک همان _case_designable است. بعد از فعال‌سازی، در صفحه محصول دکمه طراحی به صفحه ادیتور می‌رود.', 'case-designer' ) . '</p>';
 		if ( ! $editor_page_id ) {
 			echo '<p style="color:#b3261e;background:#fff3cd;padding:6px 8px;border-radius:6px">صفحه ادیتور هنوز در قاب‌ساز > تنظیمات انتخاب نشده!</p>';
@@ -111,6 +114,9 @@ class Case_Designer_Woo {
 			echo '<p>صفحه ادیتور: <a href="' . esc_url( get_permalink( $editor_page_id ) ) . '" target="_blank">#' . $editor_page_id . '</a></p>';
 		}
 		echo '<p>ID این محصول: <code>' . $post->ID . '</code> — این ID را در موکاپ‌ها > شناسه محصول متصل وارد کنید</p>';
+		if ( ! class_exists( 'WooCommerce' ) ) {
+			echo '<p style="color:#b3261e">ووکامرس فعال نیست!</p>';
+		}
 	}
 
 	public static function save_product_metabox( $post_id, $post ) {
@@ -129,6 +135,9 @@ class Case_Designer_Woo {
 
 	// برای سازگاری با تب «عمومی» ووکامرس
 	public static function woo_product_checkbox() {
+		if ( ! function_exists( 'woocommerce_wp_checkbox' ) ) {
+			return;
+		}
 		woocommerce_wp_checkbox( array(
 			'id'          => '_case_designable',
 			'label'       => __( 'قاب قابل طراحی', 'case-designer' ),
