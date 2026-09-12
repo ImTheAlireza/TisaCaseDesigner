@@ -323,15 +323,18 @@ class Case_Designer_Woo {
 		return $upload['baseurl'] . '/case-designer/' . basename( $file );
 	}
 
-	/** نمایش جزئیات طراحی در سبد و چک‌اوت */
+	/** نمایش جزئیات طراحی در سبد و چک‌اوت — بدون عکس تکراری */
 	public static function cart_item_data( $data, $cart_item ) {
-		if ( ! empty( $cart_item[ self::META_THUMB ] ) ) {
+		// عکس طرح قبلاً به عنوان تامبنیل محصول (cart_thumbnail) نمایش داده می‌شود
+		// اینجا فقط نام مدل را نشان می‌دهیم تا دو عکس تکراری نیاید
+		if ( ! empty( $cart_item['model_name'] ) ) {
 			$data[] = array(
-				'name'    => __( 'طراحی', 'case-designer' ),
-				'value'   => '<img src="' . esc_url( $cart_item[ self::META_THUMB ] ) . '" style="max-width:64px;border-radius:8px">',
-				'display' => '',
+				'name'  => __( 'مدل', 'case-designer' ),
+				'value' => sanitize_text_field( $cart_item['model_name'] ),
 			);
 		}
+		// اگر بخواهی خود عکس را جلوی «طراحی:» بگذاری، کافی است تامبنیل را نگه داری
+		// و این بخش را خالی بگذاری — الان همین کار را کردیم: تامبنیل = عکس طرح
 		return $data;
 	}
 
@@ -348,10 +351,11 @@ class Case_Designer_Woo {
 		}
 	}
 
-	/** تامبنیل طرح در سبد خرید */
+	/** تامبنیل طرح در سبد خرید — خود عکس طرح جلوی محصول */
 	public static function cart_thumbnail( $html, $cart_item, $cart_item_key ) {
 		if ( ! empty( $cart_item[ self::META_THUMB ] ) ) {
-			return '<img src="' . esc_url( $cart_item[ self::META_THUMB ] ) . '" class="case-design-thumb" alt="">';
+			// خود عکس طرح را به عنوان عکس محصول در سبد نشان بده
+			return '<img src="' . esc_url( $cart_item[ self::META_THUMB ] ) . '" class="case-design-thumb" alt="طرح اختصاصی" style="width:80px;height:auto;border-radius:12px;border:1px solid #eee;object-fit:cover">';
 		}
 		return $html;
 	}
