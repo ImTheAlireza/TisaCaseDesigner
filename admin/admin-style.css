@@ -510,7 +510,8 @@
   background: var(--cd-card); border: 1.5px solid var(--cd-line);
   border-radius: 11px; overflow: hidden; transition: border-color .14s, box-shadow .14s;
 }
-.case-designer-admin .cd-layer.sel { border-color: var(--cd-teal); box-shadow: 0 0 0 3px rgba(14, 122, 107, .12); }
+.case-designer-admin .cd-layer.sel { border-color: var(--cd-teal); }
+.case-designer-admin .cd-layer.sel .cd-layer-row { background: var(--cd-teal-soft); }
 .case-designer-admin .cd-layer-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; }
 .case-designer-admin .cd-layer-row:hover { background: #fbfaf6; }
 .case-designer-admin .cd-layer-dot { width: 11px; height: 11px; border-radius: 4px; flex-shrink: 0; border: 1.5px solid rgba(34, 29, 21, .16); }
@@ -575,9 +576,8 @@
 .case-designer-admin .cd-rect-main { z-index: 1; border-style: dashed; border-width: 2.5px; pointer-events: none; }
 .case-designer-admin .cd-rect-main > * { pointer-events: auto; }
 .case-designer-admin .cd-rect-main .cd-rect-label { font-size: 11px; }
-.case-designer-admin .cd-rect.sel {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .5), 0 0 0 2px rgba(255, 255, 255, .9), 0 0 0 4.5px rgba(34, 29, 21, .38);
-}
+/* کادر انتخاب‌شده روی بوم هیچ ظاهر اضافه‌ای نمی‌گیرد (درخواست کاربر)؛
+   انتخاب فقط در فهرست «لایه‌ها» مشخص می‌شود. */
 /* دستگیره‌های لبه‌ی فریم اصلی — تنها راه گرفتن آن وقتی زیر کادر چاپ است */
 .case-designer-admin .cd-edge { position: absolute; display: block; cursor: move; }
 .case-designer-admin .cd-edge-t { top: -8px; left: 0; right: 0; height: 16px; }
@@ -603,7 +603,7 @@
   box-shadow: 0 2px 6px rgba(34, 29, 21, .18); padding: 0; z-index: 5;
 }
 .case-designer-admin .cd-rect-del .cd-ic { width: 11px; height: 11px; }
-.case-designer-admin .cd-rect:hover .cd-rect-del, .case-designer-admin .cd-rect.sel .cd-rect-del { display: grid; }
+.case-designer-admin .cd-rect:hover .cd-rect-del { display: grid; }
 .case-designer-admin .cd-rect-handle {
   position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff;
   border: 2px solid; bottom: -7px; right: -7px; cursor: nwse-resize; z-index: 4;
