@@ -579,16 +579,60 @@ const EditorEngine = {
       const finalCanvas = document.createElement('canvas');
       finalCanvas.width = W; finalCanvas.height = H;
       const ctx = finalCanvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, W, H);
+      // فیکس (1.6.20): پس‌زمینه‌ی سفید حذف شد — موکاپ‌های PNG شفاف باید در
+      // پیش‌نمایش هم شفاف بمانند (قبل از این، بوم ابتدا سفید می‌شد و
+      // نواحی شفاف موکاپ با رنگ زمینه پوشیده می‌شدند).
+      // (فایل چاپ هنوز مثل همیشه روی زمینهٔ سفید ساخته می‌شود — exportPrint)
       try {
         ctx.drawImage(this.mockupEl, 0, 0, W, H);
       } catch (e) {
         // fallback: try to draw via pattern rect source already handled
       }
-      ctx.drawImage(maskedDesign, 0, 0);
+      // v1.6.20 — سایه‌ی پیش‌نمایش: drop shadow نرم روی «کل طراحی» به‌عنوان
+      // یک سیلوئت واحد (بعد از ترکیب‌شدن لایه‌ها) — یعنی اجزا روی هم سایه
+      // نمی‌اندازند، فقط واحدِ کل طرح روی گوشی سایه می‌ریزد و فاصله‌ی ~۲mm
+      // چاپ تا صفحه را نشان می‌دهد. فقط در پیش‌نمایش است؛ حالت ویرایش و
+      // فایل چاپ بدون سایه می‌مانند. پارامترها از تنظیمات ادمین (mm → px
+      // با ابعاد واقعی موکاپ تا در همه‌ی مدل‌ها یک‌فام دیده شود).
+      const sh = this._previewShadow();
+      if (sh) {
+        ctx.save();
+        ctx.shadowColor = sh.color;
+        ctx.shadowBlur = sh.blur;
+        ctx.shadowOffsetX = sh.offsetX;
+        ctx.shadowOffsetY = sh.offsetY;
+        ctx.drawImage(maskedDesign, 0, 0);
+        ctx.restore();
+      } else {
+        ctx.drawImage(maskedDesign, 0, 0);
+      }
       return finalCanvas.toDataURL('image/png');
     });
+  },
+
+  /**
+   * پارامترهای سایه‌ی پیش‌نمایش از تنظیمات (mm به px تبدیل می‌شود).
+   * null = سایه خاموش / بی‌اثر.
+   */
+  _previewShadow() {
+    const s = (typeof DB !== 'undefined' && DB.get) ? ((DB.get() || {}).settings || {}) : {};
+    if (s.previewShadow === false) return null;
+    const opacity = Math.min(100, Math.max(0, Number(s.previewShadowOpacity ?? 30))) / 100;
+    if (opacity <= 0) return null;
+    const m = this.model?.mockup;
+    if (!m || !m.imgW) return null;
+    const mmW = (m.mainMm && m.mainMm.w > 0) ? m.mainMm.w
+      : (m.printMm && m.printMm.w > 0) ? m.printMm.w : 66;
+    const pxPerMm = m.imgW / mmW;
+    const offset = Math.max(0, Number(s.previewShadowOffsetMm ?? 1)) * pxPerMm;
+    const blur = Math.max(0, Number(s.previewShadowBlurMm ?? 2)) * pxPerMm;
+    if (offset <= 0 && blur <= 0) return null;
+    return {
+      color: 'rgba(0,0,0,' + opacity.toFixed(3) + ')',
+      offsetX: 0,
+      offsetY: offset,
+      blur,
+    };
   },
 
   /* ---------- پیش‌نمایش — همیشه وسط و بزرگ ---------- */

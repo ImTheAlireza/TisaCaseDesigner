@@ -20,7 +20,10 @@
   /* ---------- خط لولهٔ تصویر: اعتبارسنجی + کوچک‌سازی قبل از ذخیره ----------
      عکس خام دوربین چند مگابایت است و مرورگرها HEIC را نمی‌خوانند؛
      این تابع عکس را رمزگشایی می‌کند (تشخیص فرمت‌های خراب/پشتیبانی‌نشده)،
-     به حداکثر ۱۶۰۰px کوچک می‌کند و خروجی فشرده می‌دهد. */
+     به حداکثر ۱۶۰۰px کوچک می‌کند و خروجی فشرده می‌دهد.
+     فیکس (1.6.20): PNG/WebP همیشه در همان فرمت باقی می‌مانند تا کانال alpha
+     حفظ شود. قبلاً PNGهای بزرگ (بیش از ~۳۲۰۰px) دوباره‌کدگذاری JPEG می‌شدند و
+     چون JPEG شفافیت ندارد، نواحی شفاف موکاپ پشتِ سیاه می‌ماندند. */
   function processImageFile(file, maxDim = 1600) {
     return new Promise(resolve => {
       const fail = msg => { toast(msg, 'err'); resolve(null); };
@@ -37,7 +40,9 @@
           c.width = Math.round(w * scale); c.height = Math.round(h * scale);
           const ctx = c.getContext('2d');
           ctx.drawImage(img, 0, 0, c.width, c.height);
-          const out = file.type === 'image/png' && scale > 0.5 ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.85);
+          const out = file.type === 'image/png' ? c.toDataURL('image/png')
+            : file.type === 'image/webp' ? c.toDataURL('image/webp', 0.92)
+            : c.toDataURL('image/jpeg', 0.85);
           resolve({ url: out, w: c.width, h: c.height, downscaled: true });
         };
         img.onerror = () => fail('این فرمت تصویر پشتیبانی نمی‌شود (مثلاً HEIC). لطفاً JPG یا PNG انتخاب کنید');
@@ -49,7 +54,12 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.19';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.20';
+  // v1.6.20 — آپدیت خودافزونه از zip محلی
+  const CD_UPDATE_URL = (IS_WP && window.CaseDesignerAdmin.updateUrl) || '';
+  const CD_UPDATE_NONCE = (IS_WP && window.CaseDesignerAdmin.updateNonce) || '';
+  const CD_RESTORE_URL = (IS_WP && window.CaseDesignerAdmin.restoreUrl) || '';
+  const CD_RESTORE_NONCE = (IS_WP && window.CaseDesignerAdmin.restoreNonce) || '';
 
   /* ---------------- آیکن‌های SVG خطی درون‌خطی (stroke 2، سر گرد) ---------------- */
   const ICONS = {
@@ -154,6 +164,8 @@
     guidesOn: true, restoreDraft: true,
     guidesNote: 'برش دوربین فقط در پیش‌نمایش اعمال می‌شود؛ فایل ارسالی به چاپخانه بدون برش ذخیره می‌گردد.',
     editorPageId: 0,
+    // v1.6.20 — سایه‌ی پیش‌نمایش (فاصله‌ی ~۲mm چاپ تا صفحه)
+    previewShadow: true, previewShadowOpacity: 30, previewShadowOffsetMm: 1, previewShadowBlurMm: 2,
   };
 
   const COLOR_PALETTE = [
@@ -234,14 +246,14 @@
   };
 
   /* ---------------- UI کمکی ---------------- */
-  function toast(msg, type = 'ok') {
+  function toast(msg, type = 'ok', ms = 3200) {
     let wrap = q('.cd-toasts');
     if (!wrap) { wrap = document.createElement('div'); wrap.className = 'cd-toasts'; document.body.appendChild(wrap); }
     const el = document.createElement('div');
     el.className = 'cd-toast ' + type;
     el.innerHTML = `${ic(type === 'ok' ? 'check' : type === 'err' ? 'warning' : 'info')} ${esc(msg)}`;
     wrap.appendChild(el);
-    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, 3200);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, ms);
   }
   function modal(html, cls = '') {
     const veil = document.createElement('div');
@@ -257,18 +269,21 @@
   const emptyState = (icon, title, desc) => `<div class="cd-empty">
     <div class="cd-empty-ic">${ic(icon, 24)}</div><div class="cd-empty-title">${title}</div><div class="cd-empty-desc">${desc || ''}</div></div>`;
 
-  /* ---------- دراپ‌زون آپلود تصویر (کلیک + درگ‌انددراپ) ----------
-     opts.compact = چیدمان افقی و کوتاه (مودال «افزودن موکاپ») */
+  /* ---------- دراپ‌زون آپلود (کلیک + درگ‌انددراپ) ----------
+     opts.compact = چیدمان افقی و کوتاه (مودال «افزودن موکاپ»)
+     opts.accept  = مقدر accept ورودی فایل (پیش‌فرض image/*)
+     opts.icon    = آیکن (پیش‌فرض image) — مثلاً doc برای بایگانی zip */
   function dropzoneHTML(id, opts = {}) {
     const multiple = opts.multiple ? 'multiple' : '';
+    const accept = opts.accept || 'image/*';
     return `<div class="cd-dropzone${opts.compact ? ' cd-drop-compact' : ''}" id="${id}" role="button" tabindex="0" aria-label="${esc(opts.title || 'آپلود تصویر')}">
-      <span class="cd-drop-ic">${ic('image', opts.compact ? 18 : 21)}</span>
+      <span class="cd-drop-ic">${ic(opts.icon || 'image', opts.compact ? 18 : 21)}</span>
       <span class="cd-drop-txt">
         <span class="cd-drop-title">${opts.title || 'تصویر را اینجا بکشید'}</span>
         <span class="cd-drop-hint">${opts.hint || 'PNG یا JPG — برای انتخاب، کلیک کنید'}</span>
       </span>
       <span class="cd-drop-cta">${ic('plus', 13)} ${opts.cta || 'انتخاب فایل'}</span>
-      <input type="file" accept="image/*" ${multiple} class="cd-hidden" id="${id}-input">
+      <input type="file" accept="${accept}" ${multiple} class="cd-hidden" id="${id}-input">
     </div>`;
   }
   /* فیلد عددی فشرده (برچسب بالا + ورودی + واحد) — ستون تنظیمات موکاپ */
@@ -279,12 +294,14 @@
       <span class="cd-mini-in"><input type="number" class="cd-input" id="${id}" value="${value}" step="${opts.step || 1}"${min}${max}>${unit ? `<i>${unit}</i>` : ''}</span>
     </label>`;
   }
-  function bindDropzone(id, onFiles) {
+  function bindDropzone(id, onFiles, opts = {}) {
     const dz = q('#' + id);
     if (!dz) return;
     const input = q('#' + id + '-input');
     const titleEl = dz.querySelector('.cd-drop-title');
     const origTitle = titleEl ? titleEl.textContent : '';
+    // فیلد فایل قابل قبول: پیش‌فرض تصاویر؛ برای بایگانی zip با opts.isZip
+    const okFile = opts.isZip ? (f => /\.zip$/i.test(f.name)) : (f => f.type.startsWith('image/'));
     const busy = b => {
       dz.classList.toggle('busy', !!b);
       if (titleEl) titleEl.textContent = b ? 'در حال افزودن…' : origTitle;
@@ -294,14 +311,14 @@
       if ((e.key === 'Enter' || e.key === ' ') && !dz.classList.contains('busy')) { e.preventDefault(); input.click(); }
     });
     input.addEventListener('change', () => {
-      const files = [...(input.files || [])].filter(f => f.type.startsWith('image/'));
+      const files = [...(input.files || [])].filter(okFile);
       input.value = '';
       if (files.length) onFiles(files, { busy });
     });
     ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dz.classList.add('drag'); }));
     ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); dz.classList.remove('drag'); }));
     dz.addEventListener('drop', e => {
-      const files = [...((e.dataTransfer || {}).files || [])].filter(f => f.type.startsWith('image/'));
+      const files = [...((e.dataTransfer || {}).files || [])].filter(okFile);
       if (files.length && !dz.classList.contains('busy')) onFiles(files, { busy });
     });
   }
@@ -1438,6 +1455,15 @@
             <span class="cd-switch-lbl"><b>بازیابی خودکار پیش‌نویس</b><span>با بازکردن ادیتور، آخرین طرح کاربر برگردد</span></span>
             <label class="cd-switch"><input type="checkbox" id="setRestoreDraft" ${S.restoreDraft !== false ? 'checked' : ''}><span class="cd-sw-track"><span class="cd-sw-knob"></span></span></label>
           </div>
+          <div class="cd-switch-row">
+            <span class="cd-switch-lbl"><b>سایه‌ی پیش‌نمایش</b><span>کل طرح به‌عنوان یک واحد، سایه‌ی نرمی روی گوشی بیندازد تا فاصله‌ی ~۲ میلی‌متری چاپ تا صفحه دیده شود (فقط پیش‌نمایش؛ فایل چاپ بدون سایه)</span></span>
+            <label class="cd-switch"><input type="checkbox" id="setShadowOn" ${S.previewShadow !== false ? 'checked' : ''}><span class="cd-sw-track"><span class="cd-sw-knob"></span></span></label>
+          </div>
+          <div class="cd-mini-grid ${S.previewShadow === false ? 'cd-off' : ''}" id="shadowFields" style="margin:10px 0 4px">
+            ${miniField('شدت سایه', 'shOpacity', S.previewShadowOpacity ?? 30, '٪', { min: 0, max: 100 })}
+            ${miniField('فاصلهٔ سایه', 'shOffset', S.previewShadowOffsetMm ?? 1, 'mm', { min: 0, max: 10, step: 0.5 })}
+            ${miniField('نرمی سایه', 'shBlur', S.previewShadowBlurMm ?? 2, 'mm', { min: 0, max: 10, step: 0.5 })}
+          </div>
           ${IS_WP ? '' : `
           <div class="cd-sec-title" style="margin-top:18px"><span class="cd-sec-bar"></span> فروشگاه (دمو)</div>
           <div class="cd-fields cd-fields-2" style="max-width:640px">
@@ -1449,12 +1475,34 @@
             ${IS_WP ? '' : `<button class="cd-btn cd-btn-danger cd-btn-sm" id="btnResetDemo">${ic('refresh', 14)} بازنشانی کامل دمو</button>`}
             <button class="cd-btn cd-btn-primary cd-btn-sm" id="btnSaveSettings">${ic('save', 14)} ذخیره تنظیمات</button>
           </div>
+          ${IS_WP ? `
+          <div class="cd-sec-title" style="margin-top:26px"><span class="cd-sec-bar"></span> به‌روزرسانی افزونه</div>
+          <div class="cd-upd">
+            <div class="cd-upd-row">
+              <span class="cd-upd-cur">${ic('refresh', 14)} نسخهٔ فعلی: <b>${esc(VERSION)}</b></span>
+              <form id="cdUpdateForm" action="${esc(CD_UPDATE_URL)}" method="post" enctype="multipart/form-data" class="cd-upd-form">
+                <input type="hidden" name="cd_nonce" value="${esc(CD_UPDATE_NONCE)}">
+                <input type="file" name="cd_update_zip" id="cdUpdateZip" accept=".zip,application/zip,application/x-zip-compressed" class="cd-hidden">
+                <button type="submit" class="cd-btn cd-btn-primary cd-btn-sm" id="cdUpdateGo" disabled>${ic('refresh', 13)} به‌روزرسانی از فایل زیپ</button>
+              </form>
+            </div>
+            ${dropzoneHTML('upDrop', { compact: true, icon: 'doc', accept: '.zip,application/zip,application/x-zip-compressed', title: 'بایگانی zip افزونه را اینجا بکشید', hint: 'فقط .zip — ریشهٔ بایگانی، خودِ افزونه (فایل case-designer.php) باشد', cta: 'انتخاب فایل' })}
+            <div class="cd-upd-note">${ic('info', 13)} <span>قبل از هر آپدیت، نسخهٔ فعلی به‌صورت خودکار پشتیبان گرفته می‌شود (تا ۳ نسخه) و اگر هر خطایی پیش بیاید، افزونه به‌طور خودکار به حالت قبل برمی‌گردد. بعد از آپدیت، پنل را یک‌بار ریفرش کنید تا نسخهٔ تازه بارگذاری شود.</span></div>
+            <div class="cd-upd-backups">
+              <div class="cd-upd-bhead">${ic('save', 13)} پشتیبان‌های خودکار <span class="cd-helper">(wp-content/case-designer-backups)</span></div>
+              <div id="cdBackupList" class="cd-upd-blist">${spinner('در حال خواندن پشتیبان‌ها…')}</div>
+            </div>
+          </div>` : ''}
         </div>`;
       qa('[data-seg] .cd-seg-opt').forEach(b => b.addEventListener('click', () => {
         const segEl = b.closest('[data-seg]');
         qa('.cd-seg-opt', segEl).forEach(x => x.classList.toggle('active', x === b));
         this.tmp[segEl.dataset.seg + 'Color'] = b.dataset.color;
       }));
+      const shadowSw = q('#setShadowOn'), shadowFields = q('#shadowFields');
+      if (shadowSw && shadowFields) {
+        shadowSw.addEventListener('change', () => shadowFields.classList.toggle('cd-off', !shadowSw.checked));
+      }
       q('#btnSaveSettings').addEventListener('click', async () => {
         const s = {
           defaultDpi: +q('#setDpi').value || 300,
@@ -1466,6 +1514,11 @@
           restoreDraft: q('#setRestoreDraft').checked,
           editorPageId: +q('#setEditorPage').value || 0,
           defaultProductId: +q('#setDefaultProduct').value || 0,
+          // v1.6.20 — سایه‌ی پیش‌نمایش
+          previewShadow: shadowSw ? shadowSw.checked : true,
+          previewShadowOpacity: Math.min(100, Math.max(0, +q('#shOpacity').value || 0)),
+          previewShadowOffsetMm: Math.min(10, Math.max(0, +q('#shOffset').value || 0)),
+          previewShadowBlurMm: Math.min(10, Math.max(0, +q('#shBlur').value || 0)),
         };
         if (!IS_WP) { s.storeName = q('#setStore').value || 'فروشگاه'; s.currency = q('#setCurrency').value || 'تومان'; }
         const { ok } = await guarded(() => Store.saveSettings(s));
@@ -1476,6 +1529,57 @@
       if (reset) reset.addEventListener('click', () => {
         if (confirm('همه داده‌های دمو بازنشانی شود؟')) { DB.reset(); CasePanel.render('settings'); toast('دمو بازنشانی شد'); }
       });
+      this.bindUpdater();
+    },
+
+    /* v1.6.20 — آپدیت خودافزونه از zip + بازیابی از پشتیبان (فقط وردپرس) */
+    bindUpdater() {
+      if (!IS_WP) return;
+      const form = q('#cdUpdateForm'), fileIn = q('#cdUpdateZip'), goBtn = q('#cdUpdateGo');
+      if (form && fileIn && goBtn) {
+        bindDropzone('upDrop', files => {
+          const f = (files || [])[0];
+          if (!f) return;
+          try {
+            const dt = new DataTransfer();
+            dt.items.add(f);
+            fileIn.files = dt.files;
+          } catch (e) { fileIn.value = ''; }
+          goBtn.disabled = !fileIn.files.length;
+          if (fileIn.files.length) toast('بایگانی انتخاب شد — با «به‌روزرسانی از فایل زیپ» نصب می‌شود');
+        }, { isZip: true });
+        form.addEventListener('submit', e => {
+          if (!fileIn.files.length) { e.preventDefault(); return; }
+          goBtn.disabled = true;
+          goBtn.innerHTML = `${ic('refresh', 13)} در حال نصب…`;
+        });
+      }
+      // فهرست پشتیبان‌های خودکار + دکمهٔ بازیابی
+      (async () => {
+        const host = q('#cdBackupList');
+        if (!host) return;
+        let list = [];
+        try { list = ((await api('GET', '/update/info')) || {}).backups || []; } catch (e) { list = []; }
+        if (!list.length) {
+          host.innerHTML = `<span class="cd-helper">${ic('info', 12)} هنوز پشتیبانی ساخته نشده — با اولین آپدیت، نسخهٔ فعلی اینجا ذخیره می‌شود.</span>`;
+          return;
+        }
+        host.innerHTML = list.map(b => `
+          <div class="cd-upd-bitem">
+            <span class="cd-upd-bver">${ic('doc', 13)} نسخهٔ ${esc(String(b.version || '?').replace(/-/g, '.'))}</span>
+            <span class="cd-upd-bdate">${b.date ? esc(b.date) : ''}</span>
+            <button type="button" class="cd-btn cd-btn-sm" data-restore="${esc(b.name)}">${ic('refresh', 12)} بازیابی این نسخه</button>
+          </div>`).join('');
+        qa('#cdBackupList [data-restore]').forEach(btn => btn.addEventListener('click', () => {
+          if (!confirm('به این نسخهٔ پشتیبان برگردید؟ نسخهٔ فعلی هم پیش از آن پشتیبان می‌شود.')) return;
+          const f = document.createElement('form');
+          f.action = CD_RESTORE_URL;
+          f.method = 'post';
+          f.innerHTML = `<input type="hidden" name="cd_nonce" value="${esc(CD_RESTORE_NONCE)}"><input type="hidden" name="backup" value="${esc(btn.dataset.restore)}">`;
+          document.body.appendChild(f);
+          f.submit();
+        }));
+      })();
     },
   };
 
@@ -1582,7 +1686,27 @@
   };
   window.Admin = window.CasePanel; // سازگاری با دموی قبلی
 
+  /* v1.6.20 — نتیجهٔ آپدیت/بازیابی (پارامتر cd_upd که سرور بعد از فرم می‌زند) */
+  function checkUpdateResult() {
+    let params;
+    try { params = new URLSearchParams(location.search); } catch (e) { return; }
+    const upd = params.get('cd_upd'); // خودِ URLSearchParams مقدار را یک‌بار دیکد می‌کند
+    if (!upd) return;
+    params.delete('cd_upd');
+    const qs = params.toString();
+    try { history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash); } catch (e) {}
+    if (upd.indexOf('ok:') === 0) {
+      const v = upd.slice(3);
+      toast('به‌روزرسانی موفق بود' + (v ? ' — نسخهٔ ' + v + ' نصب شد.' : '.') + ' پنل را یک‌بار ریفرش کنید تا نسخهٔ تازه بارگذاری شود.', 'ok', 14000);
+    } else {
+      let msg = upd;
+      if (msg.indexOf('err:') === 0) msg = msg.slice(4).replace(/^[A-Za-z0-9_]+\|/, '');
+      toast('به‌روزرسانی انجام نشد: ' + (msg || 'خطای نامشخص'), 'err', 14000);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
+    checkUpdateResult();
     const root = q('.case-designer-admin');
     if (!root) return;
     render(resolveInitialTab(root.dataset.tab));

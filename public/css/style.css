@@ -403,14 +403,15 @@
 #case-designer-root .preview-canvas img{
   max-height: 560px; max-width: 100%; width: auto; height: auto;
   object-fit: contain; object-position: center;
-  border-radius: 22px; box-shadow: 0 24px 48px rgba(31, 38, 135, .28);
+  /* ۱.۶.۲۰: border-radius/box-shadow کادر مستطیلی حذف شد — سایهٔ طراحی حالا
+     داخل خودِ تصویر ترکیبی می‌چرخد و موکاپ‌های شفاف کادر کاذب نمی‌گیرند */
   display: block; margin: 0 auto;
 }
 #case-designer-root .modal.wide .preview-canvas{
   min-height: 0; padding: 14px; background: rgba(255,255,255,.45);
 }
 #case-designer-root .modal.wide .preview-canvas img{
-  max-height: 420px; border-radius: 16px;
+  max-height: 420px;
 }
 #case-designer-root .preview-stage .preview-canvas{
   min-height: 520px; padding: 28px;

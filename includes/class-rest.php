@@ -142,14 +142,16 @@ class Case_Designer_REST {
 
 		register_rest_route( $ns, '/settings', array(
 			'methods'             => WP_REST_Server::CREATABLE,
-			'callback'            => function ( WP_REST_Request $req ) {
-				$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId', 'defaultProductId' );
-				$clean   = array();
-				foreach ( $allowed as $key ) {
-					if ( isset( $req[ $key ] ) ) {
-						if ( in_array( $key, array( 'guidesOn', 'restoreDraft' ), true ) ) {
-							$clean[ $key ] = (bool) $req[ $key ];
-						} elseif ( 'editorPageId' === $key ) {
+		'callback'            => function ( WP_REST_Request $req ) {
+			$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId', 'defaultProductId', 'previewShadow', 'previewShadowOpacity', 'previewShadowOffsetMm', 'previewShadowBlurMm' );
+			$clean   = array();
+			foreach ( $allowed as $key ) {
+				if ( isset( $req[ $key ] ) ) {
+					if ( in_array( $key, array( 'guidesOn', 'restoreDraft', 'previewShadow' ), true ) ) {
+						$clean[ $key ] = (bool) $req[ $key ];
+					} elseif ( in_array( $key, array( 'previewShadowOpacity', 'previewShadowOffsetMm', 'previewShadowBlurMm' ), true ) ) {
+						$clean[ $key ] = max( 0, min( 100, (float) $req[ $key ] ) );
+					} elseif ( 'editorPageId' === $key ) {
 							$clean[ $key ] = (int) $req[ $key ];
 							update_option( 'case_designer_editor_page', (int) $req[ $key ] );
 						} elseif ( 'defaultProductId' === $key ) {
@@ -165,6 +167,13 @@ class Case_Designer_REST {
 				update_option( 'case_designer_settings', $merged );
 				return $merged;
 			},
+			'permission_callback' => array( __CLASS__, 'can_manage' ),
+		) );
+
+		/* ---------------- آپدیت خودافزونه (v1.6.20) ---------------- */
+		register_rest_route( $ns, '/update/info', array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => array( 'Case_Designer_Updater', 'update_info' ),
 			'permission_callback' => array( __CLASS__, 'can_manage' ),
 		) );
 
@@ -295,7 +304,10 @@ class Case_Designer_REST {
 		return array( 'id' => $post_id, 'url' => wp_get_attachment_url( $att_id ) );
 	}
 
-	/* ---------------- ذخیره‌ی base64 در رسانه ---------------- */
+	/* ---------------- ذخیره‌ی base64 در رسانه ----------------
+	 * فیکس (1.6.20): پسوند فایل از فرمت واقعی تصویر گرفته می‌شود.
+	 * قبلاً همه‌چیز با نام .png ذخیره می‌شد — وقتی محتوای واقعی JPEG بود
+	 * (بازکد‌گذاری عکس‌های بزرگ در پنل)، نواحی شفاف پشتِ سیاه می‌ماندند. */
 	protected static function save_base64_image( $data, $title ) {
 		if ( empty( $data ) ) {
 			return 0;
@@ -304,15 +316,23 @@ class Case_Designer_REST {
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
-		$data = preg_replace( '#^data:image/\w+;base64,#i', '', $data );
+		$data = (string) $data;
+		$data = preg_replace( '#^data:image/[a-z0-9.+-]+;base64,#i', '', $data );
 		$data = base64_decode( $data );
 		if ( ! $data ) {
 			return 0;
 		}
+		// فرمت واقعی فایل (نه حدس از پسوند)
+		$ext = 'png';
+		$info = @getimagesizefromstring( $data );
+		if ( is_array( $info ) && ! empty( $info['mime'] ) ) {
+			$ext_map = array( 'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/webp' => 'webp', 'image/gif' => 'gif' );
+			$ext = isset( $ext_map[ $info['mime'] ] ) ? $ext_map[ $info['mime'] ] : 'png';
+		}
 		$tmp = wp_tempnam( 'case-designer-' );
 		file_put_contents( $tmp, $data );
 		$att = media_handle_sideload( array(
-			'name'     => sanitize_title( $title ) . '.png',
+			'name'     => sanitize_title( $title ) . '.' . $ext,
 			'tmp_name' => $tmp,
 		), 0 );
 		@unlink( $tmp );
