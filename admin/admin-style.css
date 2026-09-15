@@ -7,10 +7,10 @@
    ============================================================ */
 
 /* ---------- فونت وزیرمتن (400/500/700/800) ---------- */
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/Vazirmatn-Regular.woff2') format('woff2'); }
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/Vazirmatn-Medium.woff2') format('woff2'); }
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/Vazirmatn-Bold.woff2') format('woff2'); }
-@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 800; font-display: swap; src: url('../fonts/Vazirmatn-Black.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 400; font-display: swap; src: url('../public/fonts/Vazirmatn-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 500; font-display: swap; src: url('../public/fonts/Vazirmatn-Medium.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 700; font-display: swap; src: url('../public/fonts/Vazirmatn-Bold.woff2') format('woff2'); }
+@font-face { font-family: 'Vazirmatn'; font-style: normal; font-weight: 800; font-display: swap; src: url('../public/fonts/Vazirmatn-Black.woff2') format('woff2'); }
 
 /* ---------- توکن‌ها ---------- */
 /* ============================================================
@@ -355,53 +355,201 @@
 .case-designer-admin .cd-savebar .cd-btn { margin-inline-start: auto; }
 
 /* ============================================================
-   لیست مدل‌ها + ادیتور موکاپ
+   موکاپ‌ها — چیدمان فشرده (v4)
+   نوار افقی موکاپ‌ها + سربرگ ابزار + بوم + ستون تنظیمات چسبان
    ============================================================ */
-.case-designer-admin .cd-grid { display: grid; grid-template-columns: minmax(320px, 1.05fr) 1.62fr; gap: 14px; align-items: start; }
-.case-designer-admin .cd-mlist { display: flex; flex-direction: column; gap: 8px; max-height: 660px; overflow-y: auto; padding-inline-start: 2px; }
-.case-designer-admin .cd-mitem {
-  display: flex; align-items: center; gap: 12px;
+.case-designer-admin .cd-mk { display: flex; flex-direction: column; gap: 12px; }
+
+/* ---------- نوار افقی موکاپ‌ها ---------- */
+.case-designer-admin .cd-mk-strip {
+  display: flex; gap: 8px; align-items: stretch;
+  overflow-x: auto;
+  /* پدینگ بالا/چپ برای دکمه‌ی حذفی که گوشه‌ی بیرون چیپ می‌نشیند (وگرنه توسط overflow بریده می‌شود) */
+  padding: 9px 9px 10px;
+  scrollbar-width: thin;
+}
+.case-designer-admin .cd-mchip {
+  position: relative; display: flex; align-items: center; gap: 9px;
+  flex: 0 0 auto; min-width: 168px; max-width: 232px; padding: 7px 10px;
   background: var(--cd-card); border: 1.5px solid var(--cd-line); border-radius: 13px;
-  padding: 9px 10px; cursor: pointer; transition: border-color .14s, background .14s, box-shadow .14s;
+  cursor: pointer; box-shadow: var(--cd-shadow);
+  transition: border-color .14s, background .14s, box-shadow .14s, transform .14s;
 }
-.case-designer-admin .cd-mitem:hover { border-color: #d8d1c2; background: #fbfaf6; }
-.case-designer-admin .cd-mitem.active {
+.case-designer-admin .cd-mchip:hover { border-color: #d8d1c2; background: #fbfaf6; transform: translateY(-1px); }
+.case-designer-admin .cd-mchip.active {
   border-color: var(--cd-teal); background: #eef7f5;
-  box-shadow: 0 6px 16px -8px rgba(14, 122, 107, .4);
+  box-shadow: 0 6px 16px -8px rgba(14, 122, 107, .45);
 }
-.case-designer-admin .cd-mthumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--cd-line); flex-shrink: 0; background: #fbfaf6; }
-.case-designer-admin .cd-mthumb-empty { display: grid; place-items: center; color: var(--cd-ink3); }
-.case-designer-admin .cd-minfo { min-width: 0; flex: 1; }
-.case-designer-admin .cd-mname { font-size: 13px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.case-designer-admin .cd-mmeta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--cd-ink2); }
-.case-designer-admin .cd-mmeta .cd-ic { width: 12px; height: 12px; }
-.case-designer-admin .cd-mdel {
-  width: 28px; height: 28px; border: none; border-radius: 9px; cursor: pointer;
-  background: none; color: var(--cd-bad-l); opacity: 0; flex-shrink: 0;
-  display: grid; place-items: center; transition: opacity .14s, background .14s;
+.case-designer-admin .cd-mchip-thumb {
+  width: 34px; height: 34px; border-radius: 9px; object-fit: cover; flex-shrink: 0;
+  border: 1px solid var(--cd-line); background: #fbfaf6;
 }
-.case-designer-admin .cd-mdel .cd-ic { width: 14px; height: 14px; }
-.case-designer-admin .cd-mitem:hover .cd-mdel { opacity: 1; }
-.case-designer-admin .cd-mdel:hover { background: #fbeae8; }
+.case-designer-admin .cd-mchip-noimg { display: grid; place-items: center; color: var(--cd-ink3); }
+.case-designer-admin .cd-mchip-txt { min-width: 0; display: flex; flex-direction: column; line-height: 1.5; }
+.case-designer-admin .cd-mchip-txt b {
+  font-size: 12.5px; font-weight: 800; color: var(--cd-ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.case-designer-admin .cd-mchip-txt span {
+  font-size: 10.5px; color: var(--cd-ink2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.case-designer-admin .cd-mchip-del {
+  position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; padding: 0;
+  border: 1px solid var(--cd-line); border-radius: 50%; background: var(--cd-card);
+  color: var(--cd-bad-l); display: grid; place-items: center; cursor: pointer;
+  opacity: 0; transition: opacity .14s, background .14s;
+}
+.case-designer-admin .cd-mchip-del .cd-ic { width: 12px; height: 12px; }
+.case-designer-admin .cd-mchip:hover .cd-mchip-del { opacity: 1; }
+.case-designer-admin .cd-mchip-del:hover { background: #fbeae8; }
+.case-designer-admin .cd-mchip-add {
+  justify-content: center; gap: 7px; min-width: 148px; border-style: dashed;
+  border-color: rgba(14, 122, 107, .38); color: var(--cd-teal-d);
+  background: linear-gradient(180deg, rgba(227, 242, 239, .7), rgba(255, 255, 255, 0));
+  font-family: inherit; font-size: 12.5px; font-weight: 800; line-height: 1.7;
+}
+.case-designer-admin .cd-mchip-add:hover { border-color: var(--cd-teal); background: var(--cd-teal-soft); }
+.case-designer-admin .cd-mk-striphint {
+  display: flex; align-items: center; gap: 7px; padding: 0 8px;
+  font-size: 11.5px; color: var(--cd-ink3); white-space: nowrap;
+}
+.case-designer-admin .cd-mk-striphint .cd-ic { width: 13px; height: 13px; }
+
+/* ---------- کارت اصلی: سربرگ + بوم + ستون ---------- */
+.case-designer-admin .cd-mk-card { padding: 16px; }
+.case-designer-admin .cd-mk-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--cd-line-soft);
+}
+.case-designer-admin .cd-mk-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.case-designer-admin .cd-mk-ava {
+  width: 42px; height: 42px; border-radius: 12px; overflow: hidden; flex-shrink: 0;
+  border: 1px solid var(--cd-line); background: #fbfaf6;
+  display: grid; place-items: center; color: var(--cd-ink3);
+}
+.case-designer-admin .cd-mk-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.case-designer-admin .cd-mk-idtxt { min-width: 0; }
+.case-designer-admin .cd-mk-idtxt b { display: block; font-size: 14.5px; font-weight: 800; line-height: 1.6; }
+.case-designer-admin .cd-mk-idtxt span {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  font-size: 11px; color: var(--cd-ink2); line-height: 1.8;
+}
+.case-designer-admin .cd-mk-idtxt .cd-ic { width: 11px; height: 11px; }
+.case-designer-admin .cd-mk-idtxt em { font-style: normal; }
+.case-designer-admin .cd-mk-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-inline-start: auto; }
+.case-designer-admin .cd-mk-dirty {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #faf3e7; color: #8a5b12; border: 1px solid #e7dcc2;
+  border-radius: 999px; padding: 2px 11px; font-size: 11px; font-weight: 800;
+}
+.case-designer-admin .cd-mk-dirty .cd-ic { width: 12px; height: 12px; }
+.case-designer-admin .cd-btn-primary.dirty { box-shadow: 0 0 0 4px rgba(14, 122, 107, .2), 0 8px 18px -8px rgba(14, 122, 107, .55); }
+
+.case-designer-admin .cd-mk-body { display: grid; grid-template-columns: minmax(0, 1fr) 318px; gap: 14px; align-items: start; }
+.case-designer-admin .cd-mk-stage { min-width: 0; }
+.case-designer-admin .cd-mk-side {
+  position: sticky; top: 78px; display: flex; flex-direction: column; gap: 10px;
+  max-height: calc(100vh - 130px); overflow-y: auto; padding-inline-end: 2px;
+  scrollbar-width: thin;
+}
+
+/* ---------- راهنمای رنگ کادرها زیر بوم ---------- */
+.case-designer-admin .cd-mk-legend {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-top: 10px; font-size: 11px; color: var(--cd-ink2);
+}
+.case-designer-admin .cd-lg {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--cd-card); border: 1px solid var(--cd-line);
+  border-radius: 999px; padding: 2px 11px; font-weight: 700; color: var(--cd-ink);
+}
+.case-designer-admin .cd-lg::before { content: ''; width: 9px; height: 9px; border-radius: 3px; background: var(--lg, var(--cd-teal)); flex-shrink: 0; }
+.case-designer-admin .cd-lg-hint { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: auto; }
+.case-designer-admin .cd-lg-hint .cd-ic { width: 12px; height: 12px; color: var(--cd-teal); }
+
+/* ---------- بخش‌های جمع‌شونده‌ی ستون تنظیمات ---------- */
+.case-designer-admin .cd-sec { background: #fbfaf6; border: 1.5px solid var(--cd-line); border-radius: 13px; }
+.case-designer-admin .cd-sec > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; font-size: 12.5px; font-weight: 800; color: var(--cd-ink);
+}
+.case-designer-admin .cd-sec > summary::-webkit-details-marker { display: none; }
+.case-designer-admin .cd-sec > summary:hover { color: var(--cd-teal-d); }
+.case-designer-admin .cd-sec-ic { display: grid; place-items: center; }
+.case-designer-admin .cd-sec-ic .cd-ic { width: 14px; height: 14px; }
+.case-designer-admin .cd-sec-hint { margin-inline-start: auto; font-size: 10.5px; font-weight: 700; color: var(--cd-ink3); }
+.case-designer-admin .cd-sec-chev { display: grid; place-items: center; color: var(--cd-ink3); transition: transform .18s; }
+.case-designer-admin .cd-sec-chev .cd-ic { width: 13px; height: 13px; }
+.case-designer-admin .cd-sec[open] > summary .cd-sec-chev { transform: rotate(180deg); }
+.case-designer-admin .cd-sec-body { padding: 2px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+.case-designer-admin .cd-sec-note {
+  display: flex; gap: 7px; align-items: flex-start; margin: 0;
+  font-size: 10.8px; line-height: 1.85; color: var(--cd-ink3);
+}
+.case-designer-admin .cd-sec-note .cd-ic { width: 12px; height: 12px; margin-top: 4px; flex-shrink: 0; color: var(--cd-teal); }
+.case-designer-admin .cd-sec-note b { color: var(--cd-ink2); font-weight: 800; }
+.case-designer-admin .cd-off { opacity: .42; pointer-events: none; }
+.case-designer-admin .cd-btn-block { width: 100%; justify-content: center; }
+
+/* ---------- فیلدهای عددی فشرده ---------- */
+.case-designer-admin .cd-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.case-designer-admin .cd-mini-grid-3 { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.case-designer-admin .cd-mini { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.case-designer-admin .cd-mini-l { font-size: 10.5px; font-weight: 700; color: var(--cd-ink2); line-height: 1.6; white-space: nowrap; }
+.case-designer-admin .cd-mini-in { display: flex; align-items: center; gap: 5px; }
+.case-designer-admin .cd-mini-in .cd-input {
+  flex: 1; min-width: 0; padding: 4px 8px; font-size: 12px; line-height: 1.7; border-radius: 9px;
+}
+.case-designer-admin .cd-mini-in i { font-style: normal; font-size: 10px; font-weight: 800; color: var(--cd-ink3); flex-shrink: 0; }
+
+/* ---------- فهرست لایه‌ها ---------- */
+.case-designer-admin .cd-layers { display: flex; flex-direction: column; gap: 6px; }
+.case-designer-admin .cd-layer {
+  background: var(--cd-card); border: 1.5px solid var(--cd-line);
+  border-radius: 11px; overflow: hidden; transition: border-color .14s, box-shadow .14s;
+}
+.case-designer-admin .cd-layer.sel { border-color: var(--cd-teal); }
+.case-designer-admin .cd-layer.sel .cd-layer-row { background: var(--cd-teal-soft); }
+.case-designer-admin .cd-layer-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; }
+.case-designer-admin .cd-layer-row:hover { background: #fbfaf6; }
+.case-designer-admin .cd-layer-dot { width: 11px; height: 11px; border-radius: 4px; flex-shrink: 0; border: 1.5px solid rgba(34, 29, 21, .16); }
+.case-designer-admin .cd-layer-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 800; color: var(--cd-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case-designer-admin .cd-layer-z { font-size: 9.5px; font-weight: 700; color: var(--cd-ink3); white-space: nowrap; }
+.case-designer-admin .cd-layer-btn {
+  width: 24px; height: 24px; padding: 0; flex-shrink: 0;
+  border: none; border-radius: 8px; background: none; cursor: pointer;
+  color: var(--cd-ink3); display: grid; place-items: center; transition: background .14s, color .14s;
+}
+.case-designer-admin .cd-layer-btn .cd-ic { width: 13px; height: 13px; }
+.case-designer-admin .cd-layer-btn:hover { background: var(--cd-line-soft); color: var(--cd-ink); }
+.case-designer-admin .cd-layer-btn.danger:hover { background: #fbeae8; color: var(--cd-bad-l); }
+.case-designer-admin .cd-layer.off .cd-layer-name, .case-designer-admin .cd-layer.off .cd-layer-dot { opacity: .38; }
+.case-designer-admin .cd-layer-edit {
+  padding: 9px 8px 8px; border-top: 1px dashed var(--cd-line);
+  background: #fbfaf6; display: flex; flex-direction: column; gap: 6px;
+}
+.case-designer-admin .cd-layer-px { display: flex; align-items: center; gap: 5px; font-size: 9.8px; color: var(--cd-ink3); font-weight: 700; }
+.case-designer-admin .cd-layer-px .cd-ic { width: 11px; height: 11px; }
 
 /* ---------- ناحیه کادرکشی ---------- */
 .case-designer-admin .cd-drawwrap {
   background: #fbfaf6; border: 1.5px dashed var(--cd-line);
   border-radius: 14px; padding: 14px; display: flex; justify-content: center;
-  margin-top: 14px;
 }
 .case-designer-admin .cd-draw {
-  position: relative; height: 560px; max-width: 100%; overflow: hidden;
+  position: relative; height: 620px; max-width: 100%; overflow: hidden;
   background: radial-gradient(320px 200px at 70% 0%, rgba(14, 122, 107, .06), transparent 75%), #fbfaf6;
   border-radius: 12px; width: 100%;
   /* وسط‌چین ضدگلوله با flex — رِست سراسری هاست (مثل #case-designer-root * { margin:0 })
      نمی‌تواند وسط‌چینی را بشکند؛ ارتفاع/عرض کادر توسط JS متناسب با عکس (hug) تنظیم می‌شود */
   display: flex; justify-content: center; align-items: flex-start; padding: 12px;
 }
-.case-designer-admin .cd-imgwrap { position: relative; flex-shrink: 0; box-shadow: 0 14px 32px -14px rgba(34, 29, 21, .4); border-radius: 14px; overflow: hidden; }
+.case-designer-admin .cd-imgwrap { position: relative; flex-shrink: 0; box-shadow: 0 14px 32px -14px rgba(34, 29, 21, .4); border-radius: 14px; }
 /* عرض/ارتفاع ۱۰۰٪ لازم است: فیت‌کردن در JS فقط ابعاد «ظرف» را ست می‌کند و
    بدون این خط، تصویر در اندازهٔ طبیعی‌اش رندر شده و فقط گوشهٔ بالا-چپ دیده می‌شود. */
-.case-designer-admin .cd-imgwrap img { display: block; width: 100%; height: 100%; }
+.case-designer-admin .cd-imgwrap img { display: block; width: 100%; height: 100%; border-radius: 14px; }
 .case-designer-admin .cd-draw .cd-empty { width: 100%; }
 .case-designer-admin .cd-draw-err {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -414,41 +562,59 @@
 .case-designer-admin .cd-draw-err b { color: var(--cd-ink); font-size: 13.5px; }
 .case-designer-admin .cd-draw-err span { font-size: 11.5px; max-width: 340px; }
 .case-designer-admin .cd-draw-err .cd-btn { margin-top: 8px; }
+/* ---------- کادرهای راهنما روی بوم ----------
+   ترتیب لایه‌ها (z-index): فریم اصلی = ۱ (زیر همه) ← فضای چاپ = ۳ ← دوربین‌ها = ۴.
+   داخل فریم اصلی pointer-events ندارد تا درگِ «فضای چاپ» به فریم اصلی نرسد؛
+   فقط لبه‌ها (cd-edge)، برچسب و دستگیره‌هایش قابل گرفتن هستند. */
 .case-designer-admin .cd-rect {
   position: absolute; border: 2px solid; cursor: move; touch-action: none; border-radius: 4px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .45);
+  transition: box-shadow .14s;
 }
+.case-designer-admin .cd-rect-print { z-index: 3; }
+.case-designer-admin .cd-rect-cam { z-index: 4; }
+.case-designer-admin .cd-rect-main { z-index: 1; border-style: dashed; border-width: 2.5px; pointer-events: none; }
+.case-designer-admin .cd-rect-main > * { pointer-events: auto; }
+.case-designer-admin .cd-rect-main .cd-rect-label { font-size: 11px; }
+/* کادر انتخاب‌شده روی بوم هیچ ظاهر اضافه‌ای نمی‌گیرد (درخواست کاربر)؛
+   انتخاب فقط در فهرست «لایه‌ها» مشخص می‌شود. */
+/* دستگیره‌های لبه‌ی فریم اصلی — تنها راه گرفتن آن وقتی زیر کادر چاپ است */
+.case-designer-admin .cd-edge { position: absolute; display: block; cursor: move; }
+.case-designer-admin .cd-edge-t { top: -8px; left: 0; right: 0; height: 16px; }
+.case-designer-admin .cd-edge-b { bottom: -8px; left: 0; right: 0; height: 16px; }
+.case-designer-admin .cd-edge-r { right: -8px; top: 0; bottom: 0; width: 16px; }
+.case-designer-admin .cd-edge-l { left: -8px; top: 0; bottom: 0; width: 16px; }
+
 .case-designer-admin .cd-rect-label {
   position: absolute; top: -22px; right: 0; font-size: 10.5px; font-weight: 800; color: #fff;
-  padding: 1px 10px; border-radius: 999px; white-space: nowrap;
+  padding: 1px 10px; border-radius: 999px; white-space: nowrap; cursor: move;
   box-shadow: 0 2px 6px rgba(34, 29, 21, .25);
 }
 .case-designer-admin .cd-rect-size {
   position: absolute; bottom: -23px; left: 0; font-size: 10px; color: var(--cd-ink);
   background: var(--cd-card); padding: 1px 8px; border-radius: 999px; white-space: nowrap;
   box-shadow: 0 2px 6px rgba(34, 29, 21, .18); border: 1px solid var(--cd-line);
+  pointer-events: none;
 }
 .case-designer-admin .cd-rect-del {
   position: absolute; top: -12px; left: -12px; width: 23px; height: 23px; border-radius: 50%;
   background: var(--cd-card); color: var(--cd-bad-l); border: 1px solid var(--cd-line);
   font-size: 11px; cursor: pointer; display: none; place-items: center;
-  box-shadow: 0 2px 6px rgba(34, 29, 21, .18); padding: 0;
+  box-shadow: 0 2px 6px rgba(34, 29, 21, .18); padding: 0; z-index: 5;
 }
 .case-designer-admin .cd-rect-del .cd-ic { width: 11px; height: 11px; }
 .case-designer-admin .cd-rect:hover .cd-rect-del { display: grid; }
 .case-designer-admin .cd-rect-handle {
   position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #fff;
-  border: 2px solid; bottom: -7px; right: -7px; cursor: nwse-resize;
+  border: 2px solid; bottom: -7px; right: -7px; cursor: nwse-resize; z-index: 4;
   box-shadow: 0 2px 6px rgba(34, 29, 21, .25);
 }
 .case-designer-admin .cd-rect-radhandle {
   position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
   width: 19px; height: 19px; border-radius: 50%; background: #fff; border: 2px solid;
-  display: grid; place-items: center; cursor: ew-resize; z-index: 3;
+  display: grid; place-items: center; cursor: ew-resize; z-index: 4;
   box-shadow: 0 2px 6px rgba(34, 29, 21, .2);
 }
-.case-designer-admin .cd-rect-main { border-style: dashed; z-index: 2; }
-.case-designer-admin .cd-rect-main .cd-rect-label { font-size: 11px; }
 .case-designer-admin .cd-rect-radhandle::before { content: ''; width: 7px; height: 2px; border-radius: 2px; background: var(--cd-ink2); }
 
 /* ============================================================
@@ -589,8 +755,20 @@
 }
 .case-designer-admin .cd-drop-ic .cd-ic { width: 21px; height: 21px; }
 .case-designer-admin .cd-dropzone.drag .cd-drop-ic { background: var(--cd-teal); color: #fff; }
+.case-designer-admin .cd-drop-txt { display: flex; flex-direction: column; gap: 2px; align-items: center; min-width: 0; }
 .case-designer-admin .cd-drop-title { font-size: 13.5px; font-weight: 800; color: var(--cd-ink); }
 .case-designer-admin .cd-drop-hint { font-size: 11.5px; color: var(--cd-ink3); }
+/* حالت فشرده (مودال افزودن موکاپ): یک ردیف افقی کوتاه به‌جای بلوک ۱۵۰px */
+.case-designer-admin .cd-drop-compact {
+  flex-direction: row; align-items: center; justify-content: flex-start; text-align: right;
+  gap: 12px; min-height: 0; padding: 13px 15px;
+}
+.case-designer-admin .cd-drop-compact .cd-drop-ic { width: 38px; height: 38px; }
+.case-designer-admin .cd-drop-compact .cd-drop-ic .cd-ic { width: 18px; height: 18px; }
+.case-designer-admin .cd-drop-compact .cd-drop-txt { flex: 1; align-items: flex-start; text-align: right; gap: 0; }
+.case-designer-admin .cd-drop-compact .cd-drop-title { font-size: 12.5px; }
+.case-designer-admin .cd-drop-compact .cd-drop-hint { font-size: 11px; }
+.case-designer-admin .cd-drop-compact .cd-drop-cta { margin-top: 0; margin-inline-start: auto; flex-shrink: 0; }
 .case-designer-admin .cd-drop-cta {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 5px;
   padding: 6px 14px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
@@ -599,59 +777,68 @@
 }
 .case-designer-admin .cd-dropzone:hover .cd-drop-cta { background: var(--cd-teal); border-color: var(--cd-teal); color: #fff; }
 
-/* پیش‌نمایش تصویر انتخابی (مودال موکاپ) */
-.case-designer-admin .cd-nmpreview { margin-top: 6px; }
-.case-designer-admin .cd-nmpreview .cd-modal-preview {
-  border: 1.5px dashed #d8d1c2; border-radius: 14px; background: #fbfaf6;
-  padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+/* ---------- مودال «افزودن موکاپ» — چیدمان فشرده ---------- */
+.case-designer-admin .cd-nm { display: flex; flex-direction: column; gap: 13px; }
+.case-designer-admin .cd-nm-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.case-designer-admin .cd-nm-lbl { font-size: 12.5px; font-weight: 800; color: var(--cd-ink); flex-shrink: 0; }
+.case-designer-admin .cd-nm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.case-designer-admin .cd-nm .cd-field { gap: 5px; font-size: 12.5px; }
+.case-designer-admin .cd-nm .cd-input { padding: 7px 11px; font-size: 12.5px; line-height: 1.8; }
+.case-designer-admin .cd-tag-opt {
+  display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px;
+  background: var(--cd-line-soft); color: var(--cd-ink3); font-size: 10px; font-weight: 800;
 }
-.case-designer-admin .cd-nmpreview .cd-modal-preview img {
-  max-height: 210px; max-width: 100%; border-radius: 10px;
+.case-designer-admin .cd-bad-input { border-color: var(--cd-bad-l) !important; box-shadow: 0 0 0 4px rgba(179, 38, 30, .12) !important; }
+
+/* انتخاب برند با قرص‌های فشرده (جایگزین کارت‌های بزرگ) */
+.case-designer-admin .cd-pills { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.case-designer-admin .cd-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--cd-line); background: var(--cd-card);
+  font-family: inherit; font-size: 12px; font-weight: 800; color: var(--cd-ink2);
+  transition: border-color .15s, background .15s, color .15s, box-shadow .15s;
+}
+.case-designer-admin .cd-pill .cd-ic { width: 13px; height: 13px; }
+.case-designer-admin .cd-pill:hover { border-color: #b7d6cf; color: var(--cd-teal-d); }
+.case-designer-admin .cd-pill.active {
+  border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal-d);
+  box-shadow: 0 0 0 3px rgba(14, 122, 107, .1);
+}
+
+/* تصویر موکاپ: دراپ‌زون فشرده + پیش‌نمایش زنده‌ی کوچک کنارش */
+.case-designer-admin .cd-nm-img { display: grid; grid-template-columns: minmax(0, 1fr) 124px; gap: 10px; align-items: center; }
+.case-designer-admin .cd-nm-drop { min-width: 0; display: flex; }
+.case-designer-admin .cd-nm-drop > * { flex: 1; }
+.case-designer-admin .cd-nm-prev {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  border: 1.5px dashed #d8d1c2; border-radius: 14px; background: #fbfaf6; padding: 8px;
+}
+.case-designer-admin .cd-nm-prev img {
+  max-width: 100%; max-height: 104px; border-radius: 9px; display: block;
   box-shadow: 0 10px 24px -12px rgba(34, 29, 21, .35);
 }
-.case-designer-admin .cd-nmpreview .cd-nmremove { font-size: 11.5px; font-weight: 700; color: var(--cd-bad-l); }
-
-/* پیش‌نمایش زنده در مودال موکاپ */
-.cd-modal .cd-modal-preview {
-  border: 1.5px dashed #d8d1c2; border-radius: 14px; background: #fbfaf6;
-  padding: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 260px;
+.case-designer-admin .cd-nm-prevhint { font-size: 10px; font-weight: 700; color: var(--cd-ink3); text-align: center; line-height: 1.6; }
+.case-designer-admin .cd-nm .cd-note { margin-top: 0; }
+.case-designer-admin .cd-nmremove {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  border: 1px solid rgba(179, 38, 30, .28); background: var(--cd-card); color: var(--cd-bad-l);
+  border-radius: 9px; padding: 4px 9px; cursor: pointer;
+  font-family: inherit; font-size: 11px; font-weight: 800;
 }
-.cd-modal .cd-modal-preview img {
-  max-height: 300px; max-width: 100%; border-radius: 12px;
-  box-shadow: 0 14px 30px -14px rgba(34, 29, 21, .4);
-}
-.cd-modal .cd-modal-preview .cd-helper { text-align: center; }
-.cd-modal .cd-helper { margin-top: 8px; font-size: 11.5px; }
+.case-designer-admin .cd-nmremove .cd-ic { width: 12px; height: 12px; }
+.case-designer-admin .cd-nmremove:hover { background: #fbeae8; }
 
 /* نوار فایل انتخابی (بعد از انتخاب تصویر در مودال) */
 .case-designer-admin .cd-filebar {
   display: flex; align-items: center; gap: 12px;
   border: 1.5px solid rgba(14, 122, 107, .35); background: var(--cd-teal-soft);
-  border-radius: 14px; padding: 10px 12px; margin-top: 6px;
+  border-radius: 14px; padding: 10px 12px;
 }
 .case-designer-admin .cd-filebar-thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; border: 1px solid var(--cd-line); background: #fff; }
 .case-designer-admin .cd-filebar-info { flex: 1; min-width: 0; }
 .case-designer-admin .cd-filebar-info b { display: block; font-size: 12.5px; color: var(--cd-teal-d); }
 .case-designer-admin .cd-filebar-info span { font-size: 11px; color: var(--cd-ink3); }
-
-/* انتخاب برند با کارت‌های سگمنتی (مودال موکاپ) */
-.case-designer-admin .cd-brandcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.case-designer-admin .cd-brandcard {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px 8px 10px; border-radius: 14px; cursor: pointer;
-  border: 1.5px solid var(--cd-line); background: var(--cd-card);
-  font-family: inherit; font-size: 12.5px; font-weight: 800; color: var(--cd-ink2);
-  transition: border-color .15s, background .15s, color .15s, box-shadow .15s, transform .15s;
-}
-.case-designer-admin .cd-brandcard:hover { border-color: #b7d6cf; color: var(--cd-teal-d); transform: translateY(-1px); }
-.case-designer-admin .cd-brandcard.active {
-  border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal-d);
-  box-shadow: 0 0 0 4px rgba(14, 122, 107, .1);
-}
-.case-designer-admin .cd-brandcard .cd-brandcard-ic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; background: var(--cd-line-soft); color: var(--cd-ink3); }
-.case-designer-admin .cd-brandcard.active .cd-brandcard-ic { background: var(--cd-teal); color: #fff; }
-.case-designer-admin .cd-brandcard-ic .cd-ic { width: 20px; height: 20px; }
 
 /* ورودی با پسوند (قیمت + تومان) */
 .case-designer-admin .cd-input-group { display: flex; align-items: stretch; }
@@ -680,10 +867,14 @@
   .case-designer-admin { padding: 14px 14px 20px; }
   .case-designer-admin .cd-kpis { grid-template-columns: 1fr 1fr; }
   .case-designer-admin .cd-dashgrid, .case-designer-admin .cd-dashgrid2 { grid-template-columns: 1fr; }
-  .case-designer-admin .cd-grid { grid-template-columns: 1fr; }
   .case-designer-admin .cd-fields-2 { grid-template-columns: 1fr; }
   .cd-modal-cols { grid-template-columns: 1fr; }
   .case-designer-admin .cd-hstats { width: 100%; margin-inline-start: 0; }
+  /* موکاپ‌ها: ستون تنظیمات زیر بوم می‌آید و چسبان نمی‌ماند */
+  .case-designer-admin .cd-mk-body { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-mk-side { position: static; max-height: none; overflow: visible; }
+  .case-designer-admin .cd-nm-img { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-nm-prev img { max-height: 160px; }
 }
 @media (max-width: 720px) {
   .case-designer-admin .cd-header { padding: 16px 16px; }
@@ -694,6 +885,12 @@
   .case-designer-admin .cd-savebar { padding: 10px 12px; }
   .case-designer-admin .cd-savebar .cd-btn { margin-inline-start: 0; width: 100%; justify-content: center; }
   .case-designer-admin .cd-sb-note { width: 100%; }
+  .case-designer-admin .cd-mk-head { gap: 9px; }
+  .case-designer-admin .cd-mk-tools { width: 100%; margin-inline-start: 0; }
+  .case-designer-admin .cd-mk-tools .cd-btn { flex: 1; justify-content: center; }
+  .case-designer-admin .cd-lg-hint { margin-inline-start: 0; width: 100%; }
+  .case-designer-admin .cd-nm-grid { grid-template-columns: 1fr; }
+  .case-designer-admin .cd-mchip { min-width: 150px; }
 }
 
 /* ============================================================
@@ -731,15 +928,20 @@
 #case-designer-root .case-designer-admin .cd-qlink { border: 1px solid var(--cd-line); background: var(--cd-card); color: inherit; }
 #case-designer-root .case-designer-admin .cd-seg-opt { border: none; background: none; color: var(--cd-ink2); }
 #case-designer-root .case-designer-admin .cd-seg-opt.active { background: var(--cd-card); color: var(--cd-ink); }
-#case-designer-root .case-designer-admin .cd-mdel,
+#case-designer-root .case-designer-admin .cd-mchip-del,
 #case-designer-root .case-designer-admin .cd-tile-del,
 #case-designer-root .case-designer-admin .cd-rect-del { border: 1px solid var(--cd-line); background: var(--cd-card); color: var(--cd-bad-l); }
+#case-designer-root .case-designer-admin .cd-layer-btn { border: none; background: none; color: var(--cd-ink3); }
+#case-designer-root .case-designer-admin .cd-layer-btn:hover { background: var(--cd-line-soft); color: var(--cd-ink); }
+#case-designer-root .case-designer-admin .cd-mchip { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-ink); }
+#case-designer-root .case-designer-admin .cd-mchip.active { border-color: var(--cd-teal); background: #eef7f5; }
+#case-designer-root .case-designer-admin .cd-mchip-add { border: 1.5px dashed rgba(14, 122, 107, .38); color: var(--cd-teal-d); }
 #case-designer-root .case-designer-admin .cd-savebar .cd-btn { border: none; background: linear-gradient(135deg, var(--cd-teal-l), var(--cd-teal)); color: #fff; }
 #case-designer-root .case-designer-admin .cd-input { border: 1.5px solid var(--cd-line); }
 #case-designer-root .case-designer-admin .cd-switch input { border: none; background: none; }
-#case-designer-root .case-designer-admin .cd-brandcard { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-ink2); }
-#case-designer-root .case-designer-admin .cd-brandcard:hover { border-color: #b7d6cf; color: var(--cd-teal-d); }
-#case-designer-root .case-designer-admin .cd-brandcard.active { border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal-d); }
-#case-designer-root .case-designer-admin .cd-nmremove { border: none; background: none; color: var(--cd-bad-l); }
+#case-designer-root .case-designer-admin .cd-pill { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-ink2); }
+#case-designer-root .case-designer-admin .cd-pill:hover { border-color: #b7d6cf; color: var(--cd-teal-d); }
+#case-designer-root .case-designer-admin .cd-pill.active { border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal-d); }
+#case-designer-root .case-designer-admin .cd-nmremove { border: 1px solid rgba(179, 38, 30, .28); background: var(--cd-card); color: var(--cd-bad-l); }
 #case-designer-root .case-designer-admin .cd-modal-x { border: none; background: #f6f4ee; color: #6f6a5e; }
 #case-designer-root .case-designer-admin .cd-modal-x:hover { background: #fbeae8; color: #b3261e; }

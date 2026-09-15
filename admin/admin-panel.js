@@ -49,7 +49,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.17';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.19';
 
   /* ---------------- آیکن‌های SVG خطی درون‌خطی (stroke 2، سر گرد) ---------------- */
   const ICONS = {
@@ -78,6 +78,9 @@
     flask: '<path d="M10 3h4M11 3v5.5L5.5 17a2.2 2.2 0 0 0 1.9 3.3h9.2a2.2 2.2 0 0 0 1.9-3.3L13 8.5V3"/>',
     boxes: '<path d="M3.5 7.5L12 3l8.5 4.5-8.5 4.5z"/><path d="M3.5 12.2L12 16.7l8.5-4.5"/><path d="M3.5 16.8L12 21.5l8.5-4.7"/><path d="M12 16.7V21.5"/>',
     link: '<path d="M9 15l6-6"/><path d="M8.5 12.5l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M15.5 11.5l2-2a3.5 3.5 0 0 0-5-5l-2 2"/>',
+    chev: '<path d="M6 9.5l6 6 6-6"/>',
+    eyeOff: '<path d="M4 4l16 16"/><path d="M9.6 9.7A2.9 2.9 0 0 0 12 14.9c.8 0 1.5-.3 2-.8"/><path d="M6.5 6.7C4.1 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1.1"/><path d="M18.8 15.4c1.7-1.6 2.7-3.4 2.7-3.4S18 5.5 12 5.5c-.7 0-1.4.1-2 .2"/>',
+    layers: '<path d="M12 3.4l8.6 4.3-8.6 4.3-8.6-4.3z"/><path d="M4.4 12.2l7.6 3.8 7.6-3.8"/><path d="M4.4 16.4L12 20.2l7.6-3.8"/>',
   };
   const ic = (name, size = 15) => `<svg class="cd-ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ICONS.mobile}</svg>`;
 
@@ -88,12 +91,12 @@
   ];
   const brandOf = id => BRANDS.find(b => b.id === id) || { id, name: id, ic: 'mobile' };
 
-  const PRINT_RECT = { x: 110, y: 120, w: 580, h: 1200 };
+  const PRINT_RECT = { x: 110, y: 120, w: 580, h: 1200, radius: 30 };
   const MAIN_RECT = { x: 40, y: 50, w: 720, h: 1400, radius: 90 };
   const CAM_RECTS = {
-    iphone: [{ x: 130, y: 150, w: 180, h: 180 }],
-    samsung: [{ x: 135, y: 150, w: 160, h: 330 }],
-    xiaomi: [{ x: 150, y: 160, w: 320, h: 320 }],
+    iphone: [{ x: 130, y: 150, w: 180, h: 180, r: 24 }],
+    samsung: [{ x: 135, y: 150, w: 160, h: 330, r: 26 }],
+    xiaomi: [{ x: 150, y: 160, w: 320, h: 320, r: 30 }],
   };
 
   /* ---------- تولید موکاپ نمونه (SVG) — مستقل از فرانت‌اند تا در wp-admin هم کار کند ---------- */
@@ -254,16 +257,27 @@
   const emptyState = (icon, title, desc) => `<div class="cd-empty">
     <div class="cd-empty-ic">${ic(icon, 24)}</div><div class="cd-empty-title">${title}</div><div class="cd-empty-desc">${desc || ''}</div></div>`;
 
-  /* ---------- دراپ‌زون آپلود تصویر (کلیک + درگ‌انددراپ) ---------- */
+  /* ---------- دراپ‌زون آپلود تصویر (کلیک + درگ‌انددراپ) ----------
+     opts.compact = چیدمان افقی و کوتاه (مودال «افزودن موکاپ») */
   function dropzoneHTML(id, opts = {}) {
     const multiple = opts.multiple ? 'multiple' : '';
-    return `<div class="cd-dropzone" id="${id}" role="button" tabindex="0" aria-label="${esc(opts.title || 'آپلود تصویر')}">
-      <span class="cd-drop-ic">${ic('image', 21)}</span>
-      <span class="cd-drop-title">${opts.title || 'تصویر را اینجا بکشید'}</span>
-      <span class="cd-drop-hint">${opts.hint || 'PNG یا JPG — برای انتخاب، کلیک کنید'}</span>
+    return `<div class="cd-dropzone${opts.compact ? ' cd-drop-compact' : ''}" id="${id}" role="button" tabindex="0" aria-label="${esc(opts.title || 'آپلود تصویر')}">
+      <span class="cd-drop-ic">${ic('image', opts.compact ? 18 : 21)}</span>
+      <span class="cd-drop-txt">
+        <span class="cd-drop-title">${opts.title || 'تصویر را اینجا بکشید'}</span>
+        <span class="cd-drop-hint">${opts.hint || 'PNG یا JPG — برای انتخاب، کلیک کنید'}</span>
+      </span>
       <span class="cd-drop-cta">${ic('plus', 13)} ${opts.cta || 'انتخاب فایل'}</span>
       <input type="file" accept="image/*" ${multiple} class="cd-hidden" id="${id}-input">
     </div>`;
+  }
+  /* فیلد عددی فشرده (برچسب بالا + ورودی + واحد) — ستون تنظیمات موکاپ */
+  function miniField(label, id, value, unit, opts = {}) {
+    const min = opts.min === undefined ? '' : ` min="${opts.min}"`;
+    const max = opts.max === undefined ? '' : ` max="${opts.max}"`;
+    return `<label class="cd-mini"><span class="cd-mini-l">${label}</span>
+      <span class="cd-mini-in"><input type="number" class="cd-input" id="${id}" value="${value}" step="${opts.step || 1}"${min}${max}>${unit ? `<i>${unit}</i>` : ''}</span>
+    </label>`;
   }
   function bindDropzone(id, onFiles) {
     const dz = q('#' + id);
@@ -442,48 +456,89 @@
     },
   };
 
-  /* ---------- موکاپ‌ها ---------- */
+  /* ---------- موکاپ‌ها ----------
+     چیدمان v4: نوار افقی موکاپ‌ها → سربرگ ابزار → بوم بزرگ + ستون تنظیمات فشرده
+     ترتیب لایه‌ها روی بوم: فریم اصلی (زیر همه) ← فضای چاپ ← کادرهای دوربین (روی همه) */
   Tabs.mockups = {
+    /* --- ابزارهای این تب --- */
+    current() { return State.models.find(x => x.id === State.modelId) || null; },
+    key(type, idx) { return type === 'cam' ? 'cam-' + idx : type; },
+    selBox() { return State.boxes.find(b => b.key === State.sel) || null; },
+    colors(m) {
+      const S = State.settings || {}, mk = (m && m.mockup) || {};
+      return {
+        print: S.printColor || mk.printColor || '#304ffe',
+        cam: S.camColor || mk.camColor || '#ed1944',
+        main: S.mainColor || mk.mainColor || '#10b981',
+      };
+    },
+    /* کادرهای پیش‌فرض — متناسب با ابعاد واقعی تصویر موکاپ (نه عدد ثابت ۸۰۰×۱۵۰۰) */
+    defaults(m) {
+      const W = m.mockup.imgW || 800, H = m.mockup.imgH || 1500;
+      const kx = W / 800, ky = H / 1500;
+      const style = m.brandId === 'samsung' ? 'samsung' : m.brandId === 'xiaomi' ? 'xiaomi' : 'iphone';
+      const sc = r => ({ x: Math.round(r.x * kx), y: Math.round(r.y * ky), w: Math.round(r.w * kx), h: Math.round(r.h * ky) });
+      return {
+        printRect: Object.assign(sc(PRINT_RECT), { radius: PRINT_RECT.radius || 30 }),
+        mainRect: Object.assign(sc(MAIN_RECT), { radius: MAIN_RECT.radius || 90 }),
+        camRects: (CAM_RECTS[style] || CAM_RECTS.iphone).map(c => Object.assign(sc(c), { r: c.r || 0 })),
+      };
+    },
+    markDirty(on = true) {
+      State.dirty = !!on;
+      const chip = q('#mkDirty'), btn = q('#btnSaveMockup');
+      if (chip) chip.classList.toggle('cd-hidden', !State.dirty);
+      if (btn) btn.classList.toggle('dirty', State.dirty);
+    },
+    /* گردی گوشه — کادر دوربین از r و بقیه از radius استفاده می‌کنند */
+    setRadius(box, val) {
+      const v = Math.max(0, Math.round(val));
+      if (box.type === 'cam') box.r.r = v; else box.r.radius = v;
+    },
+
     async load() {
       const pane = q('#atab-mockups');
       pane.innerHTML = spinner();
-      const { data: models, ok } = await guarded(() => Store.models(), []);
-      State.models = models || [];
+      const [mdl, set] = await Promise.all([
+        guarded(() => Store.models(), []),
+        guarded(() => Store.settings(), State.settings || {}),
+      ]);
+      State.models = mdl.data || [];
+      State.settings = { ...DEFAULT_SETTINGS, ...(set.data || {}) };
       if (!State.modelId || !State.models.find(m => m.id === State.modelId)) State.modelId = State.models[0]?.id || null;
+      State.boxes = []; State.sel = null; State.hidden = {}; State.dirty = false; State.mainStash = State.mainStash || {};
       pane.innerHTML = `
-        <div class="cd-grid">
-          <div class="cd-card cd-list-card">
-            <div class="cd-card-head">
-              <span class="cd-card-title">${ic('mobile', 17)} مدل‌ها <span class="cd-count">${faNum(State.models.length)}</span></span>
-              <button class="cd-btn cd-btn-primary cd-btn-sm" id="btnAddModel">${ic('plus', 14)} موکاپ جدید</button>
-            </div>
-            <div class="cd-mlist" id="mockupList"></div>
-          </div>
+        <div class="cd-mk">
+          <div class="cd-mk-strip" id="mockupList"></div>
           <div id="mockupEditorCard"></div>
         </div>`;
       this.renderList();
       this.renderEditor();
-      q('#btnAddModel').addEventListener('click', () => this.openAddModel());
+      this.bindKeys();
     },
+
+    /* نوار افقی و فشرده‌ی موکاپ‌ها (جایگزین لیست ستونی بلند) */
     renderList() {
       const list = q('#mockupList');
       if (!list) return;
-      if (!State.models.length) {
-        list.innerHTML = emptyState('mobile', 'هنوز موکاپی نساخته‌اید', 'اولین موکاپ قاب را با دکمه‌ی «موکاپ جدید» بسازید.');
-        return;
-      }
-      list.innerHTML = State.models.map(m => {
+      const chips = State.models.map(m => {
         const b = brandOf(m.brandId);
-        return `<div class="cd-mitem ${m.id === State.modelId ? 'active' : ''}" data-id="${m.id}">
-          ${m.mockup.img ? `<img class="cd-mthumb" src="${esc(m.mockup.img)}" alt="">` : `<span class="cd-mthumb cd-mthumb-empty">${ic('image', 18)}</span>`}
-          <div class="cd-minfo"><div class="cd-mname">${esc(m.name)}</div>
-          <div class="cd-mmeta">${ic(b.ic, 12)} ${esc(b.name)} · ${money(m.price)}</div></div>
-          <button class="cd-mdel" data-del="${m.id}" title="حذف مدل">${ic('trash', 14)}</button>
+        return `<div class="cd-mchip ${m.id === State.modelId ? 'active' : ''}" data-id="${m.id}" title="${esc(m.name)} — ${esc(b.name)}">
+          ${m.mockup.img ? `<img class="cd-mchip-thumb" src="${esc(m.mockup.img)}" alt="">` : `<span class="cd-mchip-thumb cd-mchip-noimg">${ic('image', 15)}</span>`}
+          <span class="cd-mchip-txt"><b>${esc(m.name)}</b><span>${esc(b.name)} · ${money(m.price)}</span></span>
+          <button class="cd-mchip-del" data-del="${m.id}" title="حذف موکاپ">${ic('trash', 12)}</button>
         </div>`;
       }).join('');
-      qa('#mockupList .cd-mitem').forEach(el => el.addEventListener('click', e => {
+      // دکمه‌ی «موکاپ جدید» اولِ نوار (در RTL یعنی راست‌ترین و همیشه دیده‌شونده) می‌نشیند
+      const addChip = `<button class="cd-mchip cd-mchip-add" id="btnAddModel" title="افزودن موکاپ جدید">
+          ${ic('plus', 15)}<span>موکاپ جدید</span></button>`;
+      const hint = State.models.length ? ''
+        : `<span class="cd-mk-striphint">${ic('info', 13)} هنوز موکاپی ندارید — اولین قاب را بسازید و کادرهایش را تنظیم کنید.</span>`;
+      list.innerHTML = addChip + chips + hint;
+      qa('#mockupList .cd-mchip[data-id]').forEach(el => el.addEventListener('click', e => {
         if (e.target.closest('[data-del]')) return;
         State.modelId = el.dataset.id;
+        State.sel = null; State.hidden = {};
         this.renderList(); this.renderEditor();
       }));
       qa('#mockupList [data-del]').forEach(b => b.addEventListener('click', async () => {
@@ -495,116 +550,230 @@
         this.renderList(); this.renderEditor();
         toast('موکاپ حذف شد');
       }));
+      q('#btnAddModel')?.addEventListener('click', () => this.openAddModel());
     },
+
+    /* سربرگ + بوم + ستون تنظیمات */
     renderEditor() {
       if (State.fitObs) { State.fitObs.disconnect(); State.fitObs = null; }
       const card = q('#mockupEditorCard');
-      const m = State.models.find(x => x.id === State.modelId);
-      if (!m) { card.innerHTML = `<div class="cd-card">${emptyState('mobile', 'مدلی انتخاب نشده', 'از لیست کنار، یک مدل انتخاب کنید.')}</div>`; return; }
-      const b = brandOf(m.brandId);
-      // ensure mainRect exists
-      if (!m.mockup.mainRect) m.mockup.mainRect = { ...MAIN_RECT };
+      if (!card) return;
+      const m = this.current();
+      if (!m) {
+        card.innerHTML = `<div class="cd-card">${emptyState('mobile', 'موکاپی انتخاب نشده', 'از نوار بالا یک موکاپ انتخاب کنید یا با «موکاپ جدید» یکی بسازید.')}</div>`;
+        return;
+      }
+      m.mockup.camRects = m.mockup.camRects || [];
+      if (!m.mockup.printRect) m.mockup.printRect = { ...PRINT_RECT };
+      if (!m.mockup.printMm) m.mockup.printMm = { w: 66, h: 138 };
       if (!m.mockup.mainMm) m.mockup.mainMm = { w: 74, h: 148 };
+      const b = brandOf(m.brandId);
+      const C = this.colors(m);
+      const hasMain = !!(m.mockup.mainRect && m.mockup.mainRect.w > 0);
+
+      const sec = (icon, color, title, hint, body) => `
+        <details class="cd-sec" open>
+          <summary><span class="cd-sec-ic" style="color:${color}">${ic(icon, 14)}</span><b>${title}</b>
+            <span class="cd-sec-hint">${hint}</span><span class="cd-sec-chev">${ic('chev', 13)}</span></summary>
+          <div class="cd-sec-body">${body}</div>
+        </details>`;
+
       card.innerHTML = `
-        <div class="cd-card">
-          <div class="cd-card-head">
-            <span class="cd-card-title">${ic('bullseye', 17)} کادرکشی موکاپ — ${esc(m.name)} <span class="cd-chip">${ic(b.ic, 12)} ${esc(b.name)}</span></span>
-            <div class="cd-actions">
-              <button class="cd-btn cd-btn-sm" id="btnReplaceImg">${ic('image', 14)} تعویض تصویر</button>
+        <div class="cd-card cd-mk-card">
+          <div class="cd-mk-head">
+            <div class="cd-mk-id">
+              <span class="cd-mk-ava">${m.mockup.img ? `<img src="${esc(m.mockup.img)}" alt="">` : ic('mobile', 18)}</span>
+              <span class="cd-mk-idtxt">
+                <b>${esc(m.name)}</b>
+                <span>${ic(b.ic, 11)} ${esc(b.name)} · ${money(m.price)} · ${faNum(m.mockup.dpi || 300)} DPI
+                  · <em id="mkImgDims">${m.mockup.imgW ? `تصویر ${faNum(m.mockup.imgW)}×${faNum(m.mockup.imgH)}` : 'تصویر در حال بارگذاری…'}</em>
+                  ${m.productId ? ` · ${ic('link', 11)} محصول #${faNum(m.productId)}` : ''}</span>
+              </span>
+            </div>
+            <div class="cd-mk-tools">
+              <span class="cd-mk-dirty cd-hidden" id="mkDirty">${ic('warning', 12)} تغییرات ذخیره نشده</span>
               <input type="file" id="mockupFile" accept="image/*" class="cd-hidden">
-              <button class="cd-btn cd-btn-sm" id="btnAddCam">${ic('camera', 14)} کادر دوربین</button>
-              <button class="cd-btn cd-btn-sm" id="btnAddMain">${ic('boxes', 14)} فریم اصلی</button>
-              <button class="cd-btn cd-btn-primary cd-btn-sm" id="btnSaveMockup">${ic('save', 14)} ذخیره موکاپ</button>
+              <button class="cd-btn cd-btn-sm" id="btnReplaceImg">${ic('image', 13)} تعویض تصویر</button>
+              <button class="cd-btn cd-btn-sm" id="btnResetBoxes" title="کادرها به حالت پیش‌فرض برگردانده شوند">${ic('refresh', 13)} بازنشانی کادرها</button>
+              <button class="cd-btn cd-btn-primary cd-btn-sm" id="btnSaveMockup">${ic('save', 13)} ذخیره موکاپ</button>
             </div>
           </div>
-          <div class="cd-fields cd-fields-2">
-            <label class="cd-field">عرض چاپ (mm)<input type="number" class="cd-input" id="mmW" value="${m.mockup.printMm.w}" min="10" max="300"></label>
-            <label class="cd-field">ارتفاع چاپ (mm)<input type="number" class="cd-input" id="mmH" value="${m.mockup.printMm.h}" min="10" max="500"></label>
-            <label class="cd-field">DPI چاپ<input type="number" class="cd-input" id="dpiF" value="${m.mockup.dpi}" min="72" max="600"></label>
-            <label class="cd-field">گردی گوشه‌ی کادر چاپ (px)<input type="number" class="cd-input" id="prRad" value="${m.mockup.printRect.radius || 0}" min="0" max="400"></label>
-            <label class="cd-field">گردی گوشه‌ی کادر دوربین (px)<input type="number" class="cd-input" id="camRad" value="${(m.mockup.camRects[0] || {}).r || 0}" min="0" max="400"></label>
-          </div>
-          <div class="cd-fields cd-fields-2" style="margin-top:12px">
-            <label class="cd-field" style="border:1px dashed rgba(16,185,129,.35);border-radius:10px;padding:10px;background:rgba(16,185,129,.06)"><b style="color:#0e7a6b">${ic('boxes',13)} فریم اصلی طرح</b>
-              <span class="cd-helper">دقیقاً ابعاد گوشی را مشخص کنید — فایل نهایی در همین ابعاد کات و ذخیره می‌شود</span>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-                <label class="cd-field">عرض فریم اصلی (mm)<input type="number" class="cd-input" id="mainMmW" value="${m.mockup.mainMm.w}" min="10" max="400"></label>
-                <label class="cd-field">ارتفاع فریم اصلی (mm)<input type="number" class="cd-input" id="mainMmH" value="${m.mockup.mainMm.h}" min="10" max="600"></label>
+
+          <div class="cd-mk-body">
+            <div class="cd-mk-stage">
+              <div class="cd-drawwrap">
+                <div class="cd-draw" id="drawArea">
+                  ${m.mockup.img ? `<div id="imgWrap" class="cd-imgwrap"><img id="mockupImg" src="${esc(m.mockup.img)}" alt=""></div>`
+                    : emptyState('image', 'تصویر موکاپ آپلود نشده', 'با «تعویض تصویر» موکاپ این مدل را بارگذاری کنید.')}
+                </div>
               </div>
-              <label class="cd-field" style="margin-top:8px">گردی گوشه‌ی فریم اصلی (px)<input type="number" class="cd-input" id="mainRad" value="${m.mockup.mainRect.radius || 0}" min="0" max="500"></label>
-            </label>
-            <label class="cd-field"><span class="cd-helper">اگر فریم اصلی نداشته باشید، فایل چاپ بر اساس فضای چاپ برش می‌خورد. برای گوشی، فریم اصلی باید کل بدنه را بپوشاند.</span></label>
-          </div>
-          <div class="cd-drawwrap">
-            <div class="cd-draw" id="drawArea">
-              ${m.mockup.img ? `<div id="imgWrap" class="cd-imgwrap"><img id="mockupImg" src="${esc(m.mockup.img)}" alt=""></div>`
-                : emptyState('image', 'تصویر موکاپ آپلود نشده', 'با «تعویض تصویر» موکاپ این مدل را بارگذاری کنید.')}
+              <div class="cd-mk-legend">
+                <span class="cd-lg" style="--lg:${C.print}">فضای چاپ</span>
+                <span class="cd-lg" style="--lg:${C.cam}">دوربین</span>
+                <span class="cd-lg" style="--lg:${C.main}">فریم اصلی — زیر همه</span>
+                <span class="cd-lg-hint">${ic('info', 12)} کادرها را بکشید؛ لایه‌ی انتخابی با جهت‌نماها ۱px و با Shift ۱۰px جابه‌جا می‌شود</span>
+              </div>
             </div>
-          </div>
-          <div class="cd-note cd-note-ok">
-            ${ic('info', 14)}
-            <span><b>کادر آبیرنگ = فضای چاپ</b>، <b>کادر قرمز = فضای دوربین</b> و <b>کادر سبزرنگ = فریم اصلی طرح</b>. کادرها را بکشید تا جابه‌جا شوند؛ دستگیره‌ی گوشه برای تغییر اندازه و دستگیره‌ی وسط لبه‌ی بالا برای گردی گوشه‌هاست.<br>
-            در ادیتور، طرح فقط داخل فضای چاپ دیده می‌شود و دوربین‌ها سوراخ هستند؛ <b>فایل نهایی دقیقاً در ابعاد «فریم اصلی طرح» کات و ذخیره می‌شود</b> — اگر فریم اصلی نداشته باشید، بر اساس فضای چاپ برش می‌خورد.</span>
+
+            <aside class="cd-mk-side">
+              ${sec('bullseye', C.print, 'ابعاد چاپ', 'mm / DPI', `
+                <div class="cd-mini-grid">
+                  ${miniField('عرض چاپ', 'mmW', m.mockup.printMm.w, 'mm', { min: 10, max: 300 })}
+                  ${miniField('ارتفاع چاپ', 'mmH', m.mockup.printMm.h, 'mm', { min: 10, max: 500 })}
+                  ${miniField('DPI چاپ', 'dpiF', m.mockup.dpi || 300, '', { min: 72, max: 600 })}
+                  ${miniField('گردی کادر چاپ', 'prRad', m.mockup.printRect.radius || 0, 'px', { min: 0, max: 400 })}
+                </div>`)}
+
+              ${sec('boxes', C.main, 'فریم اصلی طرح', 'برش فایل نهایی', `
+                <div class="cd-switch-row">
+                  <span class="cd-switch-lbl"><b>فریم اصلی فعال است</b><span>خاموش = فایل چاپ بر اساس فضای چاپ برش می‌خورد</span></span>
+                  <label class="cd-switch"><input type="checkbox" id="mainOn" ${hasMain ? 'checked' : ''}><span class="cd-sw-track"><span class="cd-sw-knob"></span></span></label>
+                </div>
+                <div class="cd-mini-grid ${hasMain ? '' : 'cd-off'}" id="mainFields">
+                  ${miniField('عرض فریم', 'mainMmW', m.mockup.mainMm.w, 'mm', { min: 10, max: 400 })}
+                  ${miniField('ارتفاع فریم', 'mainMmH', m.mockup.mainMm.h, 'mm', { min: 10, max: 600 })}
+                  ${miniField('گردی گوشه', 'mainRad', (m.mockup.mainRect || {}).radius || 0, 'px', { min: 0, max: 500 })}
+                </div>
+                <p class="cd-sec-note">${ic('layers', 12)} لایه‌ی فریم اصلی همیشه <b>زیر</b> کادر چاپ و دوربین‌هاست؛ برای جابه‌جایی لبه‌های سبزرنگش را بگیرید یا از «لایه‌ها» انتخابش کنید.</p>`)}
+
+              ${sec('camera', C.cam, 'کادرهای دوربین', `<span id="camCount">${faNum(m.mockup.camRects.length)}</span> کادر`, `
+                <div class="cd-mini-grid">
+                  ${miniField('گردی گوشه‌ی همه', 'camRad', (m.mockup.camRects[0] || {}).r || 0, 'px', { min: 0, max: 400 })}
+                </div>
+                <button class="cd-btn cd-btn-sm cd-btn-block" id="btnAddCam">${ic('plus', 13)} افزودن کادر دوربین</button>`)}
+
+              ${sec('layers', 'var(--cd-teal)', 'لایه‌ها', 'بالا → پایین', `
+                <div class="cd-layers" id="mkLayers"></div>`)}
+            </aside>
           </div>
         </div>`;
+
+      this.bindEditor(m);
       this.loadImage(m);
-      q('#btnAddCam').addEventListener('click', () => {
+      if (!m.mockup.img) {
+        const host = q('#mkLayers');
+        if (host) host.innerHTML = `<p class="cd-sec-note">${ic('info', 12)} تا تصویر موکاپ بارگذاری نشود، کادری ساخته نمی‌شود.</p>`;
+      }
+      this.markDirty(false);
+    },
+
+    /* رویدادهای سربرگ و ستون تنظیمات */
+    bindEditor(m) {
+      const on = (sel, ev, fn) => q(sel)?.addEventListener(ev, fn);
+
+      on('#btnAddCam', 'click', () => {
         const r = m.mockup.printRect;
         m.mockup.camRects.push({ x: r.x + 30, y: r.y + 30, w: 130, h: 130, r: +(q('#camRad')?.value || 0) });
+        State.sel = this.key('cam', m.mockup.camRects.length - 1);
         this.renderBoxes(m);
+        this.markDirty();
+        const cnt = q('#camCount'); if (cnt) cnt.textContent = faNum(m.mockup.camRects.length);
+        toast('کادر دوربین اضافه شد — جابه‌جایش کنید');
       });
-      q('#btnAddMain').addEventListener('click', () => {
-        const W = m.mockup.imgW || 800, H = m.mockup.imgH || 1500;
-        m.mockup.mainRect = { x: Math.round(W*0.05), y: Math.round(H*0.03), w: Math.round(W*0.9), h: Math.round(H*0.94), radius: +(q('#mainRad')?.value || 90) };
+
+      on('#mainOn', 'change', e => {
+        const fields = q('#mainFields');
+        if (e.target.checked) {
+          m.mockup.mainRect = State.mainStash[m.id] || this.defaults(m).mainRect;
+          if (!m.mockup.mainMm) m.mockup.mainMm = { w: 74, h: 148 };
+          if (fields) fields.classList.remove('cd-off');
+          const w = q('#mainMmW'), h = q('#mainMmH'), r = q('#mainRad');
+          if (w) w.value = m.mockup.mainMm.w; if (h) h.value = m.mockup.mainMm.h;
+          if (r) r.value = m.mockup.mainRect.radius || 0;
+          State.sel = 'main';
+          toast('فریم اصلی برگشت — لبه‌های سبز را بکشید تا دقیقاً روی گوشی بنشیند');
+        } else {
+          State.mainStash[m.id] = m.mockup.mainRect;   // نگه‌داشتن تا با روشن‌کردن دوباره برگردد
+          m.mockup.mainRect = null;
+          if (fields) fields.classList.add('cd-off');
+          if (State.sel === 'main') State.sel = 'print';
+          toast('فریم اصلی خاموش شد — فایل چاپ بر اساس فضای چاپ برش می‌خورد');
+        }
         this.renderBoxes(m);
-        toast('فریم اصلی اضافه شد — آن را بکشید تا دقیقاً روی گوشی قرار گیرد');
+        this.markDirty();
       });
-      q('#btnSaveMockup').addEventListener('click', async () => {
+
+      on('#btnResetBoxes', 'click', () => {
+        if (!confirm('کادرهای چاپ، دوربین و فریم اصلی این موکاپ به حالت پیش‌فرض برگردانده شود؟')) return;
+        const d = this.defaults(m);
+        m.mockup.printRect = d.printRect;
+        m.mockup.mainRect = d.mainRect;
+        m.mockup.camRects = d.camRects;
+        this.renderEditor();
+        this.markDirty();
+        toast('کادرها پیش‌فرض شدند — ذخیره را بزنید');
+      });
+
+      on('#btnSaveMockup', 'click', async () => {
         m.mockup.printMm = { w: +q('#mmW').value || 66, h: +q('#mmH').value || 138 };
-        m.mockup.mainMm = { w: +q('#mainMmW').value || 74, h: +q('#mainMmH').value || 148 };
         m.mockup.dpi = +q('#dpiF').value || 300;
         m.mockup.printRect.radius = Math.max(0, Math.min(400, +q('#prRad').value || 0));
-        m.mockup.mainRect.radius = Math.max(0, Math.min(500, +q('#mainRad')?.value || 0));
+        if (q('#mainOn').checked) {
+          if (!m.mockup.mainRect) m.mockup.mainRect = this.defaults(m).mainRect;
+          m.mockup.mainMm = { w: +q('#mainMmW').value || 74, h: +q('#mainMmH').value || 148 };
+          m.mockup.mainRect.radius = Math.max(0, Math.min(500, +q('#mainRad').value || 0));
+        } else {
+          m.mockup.mainRect = null;
+        }
         const camRad = Math.max(0, Math.min(400, +q('#camRad').value || 0));
         m.mockup.camRects.forEach(c => { c.r = camRad; });
+        const btn = q('#btnSaveMockup');
+        if (btn) { btn.disabled = true; btn.innerHTML = `${ic('refresh', 13)} در حال ذخیره…`; }
         const { ok } = await guarded(() => Store.saveMockup(m.id, m.mockup));
-        if (ok) { this.renderBoxes(m); toast('موکاپ و کادرها ذخیره شد'); }
+        if (ok) { this.renderBoxes(m); this.markDirty(false); toast('موکاپ و کادرها ذخیره شد'); }
         else toast('ذخیره ناموفق بود', 'err');
+        this.renderEditor();
       });
-      q('#btnReplaceImg').addEventListener('click', () => q('#mockupFile').click());
-      q('#mockupFile').addEventListener('change', async e => {
+
+      on('#btnReplaceImg', 'click', () => q('#mockupFile').click());
+      on('#mockupFile', 'change', async e => {
         const f = e.target.files[0]; if (!f) return;
         const img = await processImageFile(f);
         if (!img) return;
         const { ok } = await guarded(() => Store.replaceImage(m.id, img.url));
-        if (ok) { State.models = (await guarded(() => Store.models(), State.models)).data; this.renderEditor(); toast('تصویر موکاپ جایگزین شد — کادرها را بازبینی کنید'); }
-        else toast('آپلود تصویر ناموفق بود', 'err');
+        if (ok) {
+          State.models = (await guarded(() => Store.models(), State.models)).data;
+          State.sel = null; State.hidden = {};
+          this.renderList(); this.renderEditor();
+          toast('تصویر موکاپ جایگزین شد — کادرها را بازبینی کنید');
+        } else toast('آپلود تصویر ناموفق بود', 'err');
       });
+
+      /* تغییر زنده‌ی ابعاد/گردی → هم‌زمان روی بوم دیده شود */
+      const liveNum = (sel, fn) => on(sel, 'input', e => { fn(+e.target.value || 0); this.renderBoxes(m, true); this.markDirty(); });
+      liveNum('#mmW', v => { m.mockup.printMm.w = Math.max(1, v); });
+      liveNum('#mmH', v => { m.mockup.printMm.h = Math.max(1, v); });
+      liveNum('#prRad', v => { m.mockup.printRect.radius = Math.max(0, Math.min(400, v)); });
+      liveNum('#camRad', v => { const r = Math.max(0, Math.min(400, v)); m.mockup.camRects.forEach(c => { c.r = r; }); });
+      liveNum('#mainRad', v => { if (m.mockup.mainRect) m.mockup.mainRect.radius = Math.max(0, Math.min(500, v)); });
+      on('#mainMmW', 'input', e => { m.mockup.mainMm.w = Math.max(1, +e.target.value || 0); this.renderBoxes(m, true); this.markDirty(); });
+      on('#mainMmH', 'input', e => { m.mockup.mainMm.h = Math.max(1, +e.target.value || 0); this.renderBoxes(m, true); this.markDirty(); });
     },
+
     loadImage(m) {
-      const img = q('#mockupImg'), wrap = q('#imgWrap'), area = q('#drawArea'), drawwrap = area.parentElement;
-      if (!img) return;
+      const img = q('#mockupImg'), wrap = q('#imgWrap'), area = q('#drawArea');
+      if (!img || !wrap || !area) return;
+      const drawwrap = area.parentElement;
       const fit = () => {
         if (!area.isConnected || !img.naturalWidth) return;
-        // فضای در دسترس: عرض پدر (داک خط‌چین بیرونی) منهای پدینگ‌ها؛ ارتفاع حداکثر ۵۶۰
+        // فضای در دسترس: عرض ستون بوم منهای پدینگ‌ها؛ ارتفاع متناسب با بلندی پنجره
         const availW = Math.max(80, (drawwrap.clientWidth || 0) - 52);
-        const availH = 536;
+        const availH = Math.max(440, Math.min(900, (window.innerHeight || 900) - 260));
         const s = Math.min(availW / img.naturalWidth, availH / img.naturalHeight, 1);
         State.displayScale = s;
         const w = Math.round(img.naturalWidth * s), h = Math.round(img.naturalHeight * s);
         wrap.style.width = w + 'px';
         wrap.style.height = h + 'px';
-        // خودِ <img> هم صریحاً فیت می‌شود تا رندر به CSS موروثی وابسته نباشد
         img.style.width = w + 'px';
         img.style.height = h + 'px';
-        // کادر خط‌چین، عکس را «در آغوش» می‌گیرد تا عکس همیشه دقیقاً داخل کادر فیت شود
         area.style.width = Math.min(w + 48, (drawwrap.clientWidth || (w + 48)) - 28) + 'px';
         area.style.height = (h + 48) + 'px';
         m.mockup.imgW = img.naturalWidth; m.mockup.imgH = img.naturalHeight;
+        const dims = q('#mkImgDims');
+        if (dims) dims.textContent = `تصویر ${faNum(img.naturalWidth)}×${faNum(img.naturalHeight)}`;
         this.clampRects(m, img.naturalWidth, img.naturalHeight);
         this.renderBoxes(m);
       };
-      // اگر تصویر لود نشود، پیام خطای قابل‌دید نشان بده (نه فقط کادرهای شناور)
       const showErr = () => {
         qa('.cd-rect', wrap).forEach(b => b.remove());
         wrap.style.width = wrap.style.height = '';
@@ -620,7 +789,6 @@
       img.onload = fit;
       img.onerror = showErr;
       if (img.complete) { img.naturalWidth ? fit() : showErr(); }
-      // بازمحاسبهٔ فیت با تغییر اندازهٔ پنجره/چیدمان (مثلاً جمع‌شدن منو یا تغییر عرض ستون)
       if (State.fitObs) State.fitObs.disconnect();
       State.fitObs = new ResizeObserver(() => fit());
       State.fitObs.observe(drawwrap);
@@ -628,8 +796,8 @@
       State.fitResize = () => fit();
       window.addEventListener('resize', State.fitResize);
     },
-    /* اگر کادرها بیرون از تصویر باشند (مثلاً بعد از تعویض تصویر با عکسی با ابعاد دیگر)،
-       به داخل تصویر برمی‌گردند تا همیشه روی عکس بمانند */
+
+    /* اگر کادرها بیرون از تصویر باشند (مثلاً بعد از تعویض تصویر)، به داخل برمی‌گردند */
     clampRects(m, W, H) {
       const clamp = (r, minW, minH) => {
         if (!r) return;
@@ -640,84 +808,196 @@
       };
       clamp(m.mockup.printRect, 60, 80);
       if (m.mockup.mainRect) clamp(m.mockup.mainRect, 60, 80);
-      m.mockup.camRects.forEach(c => clamp(c, 40, 40));
+      (m.mockup.camRects || []).forEach(c => clamp(c, 40, 40));
     },
-    renderBoxes(m) {
+
+    /* ساخت کادرها روی بوم.
+       ترتیب DOM = ترتیب لایه‌ها: اول «فریم اصلی» (پایین‌ترین)، بعد «فضای چاپ»،
+       بعد کادرهای دوربین (بالاترین). به‌علاوه z-index صریح در CSS تا هیچ‌وقت
+       فریم اصلی روی کادر چاپ نیفتد و درگِ فضای چاپ به فریم اصلی نرسد. */
+    renderBoxes(m, keepLayers) {
       const wrap = q('#imgWrap'); if (!wrap) return;
       qa('.cd-rect', wrap).forEach(b => b.remove());
+      const sel = State.sel;
       State.boxes = [];
-      const colors = {
-        print: (State.settings || {}).printColor || m.mockup.printColor || '#304ffe',
-        cam: (State.settings || {}).camColor || m.mockup.camColor || '#ed1944',
-        main: (State.settings || {}).mainColor || m.mockup.mainColor || '#10b981'
+      const C = this.colors(m);
+      /* تهِ کادرها از همان رنگ تنظیمات (با شفافیت کم) ساخته می‌شود */
+      const rgba = (hex, a) => {
+        const h = String(hex || '').replace('#', '');
+        const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+        return isNaN(n) ? `rgba(120,120,120,${a})` : `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
       };
+      const FILL = { print: rgba(C.print, .07), cam: rgba(C.cam, .07), main: rgba(C.main, .09) };
+
       const mk = (type, r, idx) => {
         if (!r || r.w <= 0) return;
+        const key = this.key(type, idx);
         const el = document.createElement('div');
-        el.className = 'cd-rect' + (type === 'main' ? ' cd-rect-main' : '');
-        const color = type === 'print' ? colors.print : type === 'main' ? colors.main : colors.cam;
-        el.style.borderColor = color;
-        el.style.background = type === 'print' ? 'rgba(48,79,254,.07)' : type === 'main' ? 'rgba(16,185,129,.09)' : 'rgba(237,25,68,.07)';
-        el.style.borderWidth = type === 'main' ? '2.5px' : '2px';
-        const label = type === 'print' ? 'فضای چاپ' : type === 'main' ? 'فریم اصلی طرح' : 'دوربین ' + (idx + 1);
+        el.className = `cd-rect cd-rect-${type}` + (sel === key ? ' sel' : '');
+        el.dataset.key = key;
+        el.style.borderColor = C[type];
+        el.style.background = FILL[type];
+        if (State.hidden[key]) el.style.display = 'none';
+        const label = type === 'print' ? 'فضای چاپ' : type === 'main' ? 'فریم اصلی' : 'دوربین ' + faNum(idx + 1);
         el.innerHTML = `
-          <div class="cd-rect-label" style="background:${color}">${label}</div>
+          ${type === 'main' ? `<i class="cd-edge cd-edge-t"></i><i class="cd-edge cd-edge-b"></i><i class="cd-edge cd-edge-r"></i><i class="cd-edge cd-edge-l"></i>` : ''}
+          <div class="cd-rect-label" style="background:${C[type]}">${label}</div>
           <div class="cd-rect-size"></div>
-          ${type === 'cam' ? `<button class="cd-rect-del" title="حذف کادر">${ic('x', 11)}</button>` : type === 'main' ? `<button class="cd-rect-del" title="حذف فریم اصلی" data-main-del>${ic('x', 11)}</button>` : ''}
-          <div class="cd-rect-handle" title="تغییر اندازه" style="border-color:${color}"></div>
-          <div class="cd-rect-radhandle" title="بکشید تا گوشه‌ها گرد شوند" style="border-color:${color}"></div>`;
+          ${type === 'print' ? '' : `<button class="cd-rect-del" title="${type === 'main' ? 'خاموش‌کردن فریم اصلی' : 'حذف کادر'}">${ic('x', 11)}</button>`}
+          <div class="cd-rect-handle" title="تغییر اندازه" style="border-color:${C[type]}"></div>
+          <div class="cd-rect-radhandle" title="گردی گوشه — بکشید" style="border-color:${C[type]}"></div>`;
         wrap.appendChild(el);
-        const box = { type, idx, r, el };
-        const apply = () => {
-          el.style.left = (r.x * State.displayScale) + 'px';
-          el.style.top = (r.y * State.displayScale) + 'px';
-          el.style.width = (r.w * State.displayScale) + 'px';
-          el.style.height = (r.h * State.displayScale) + 'px';
-          const rad = type === 'print' ? (r.radius || 0) : (r.r || r.radius || 0);
-          el.style.borderRadius = (rad * State.displayScale) + 'px';
-          let mmW, mmH;
-          if (type === 'main') {
-            mmW = (r.w / (m.mockup.printRect.w || 1)) * (m.mockup.printMm.w || 66);
-            mmH = (r.h / (m.mockup.printRect.h || 1)) * (m.mockup.printMm.h || 138);
-            // if mainMm exists, show its configured size
-            if (m.mockup.mainMm) {
-              el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)}×${mmH.toFixed(1)} mm → ${m.mockup.mainMm.w}×${m.mockup.mainMm.h} mm نهایی`;
-            } else {
-              el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر (فریم اصلی)`;
-            }
-          } else {
-            mmW = (r.w / m.mockup.printRect.w) * m.mockup.printMm.w;
-            mmH = (r.h / m.mockup.printRect.h) * m.mockup.printMm.h;
-            el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
+        const box = { type, idx, key, r, el };
+        box.apply = () => {
+          const s = State.displayScale || 1;
+          el.style.left = (r.x * s) + 'px';
+          el.style.top = (r.y * s) + 'px';
+          el.style.width = (r.w * s) + 'px';
+          el.style.height = (r.h * s) + 'px';
+          el.style.borderRadius = ((type === 'cam' ? (r.r || 0) : (r.radius || 0)) * s) + 'px';
+          const pm = m.mockup.printMm || { w: 66, h: 138 };
+          const pw = m.mockup.printRect.w || 1, ph = m.mockup.printRect.h || 1;
+          const mmW = (r.w / pw) * (pm.w || 66), mmH = (r.h / ph) * (pm.h || 138);
+          const sizeEl = el.querySelector('.cd-rect-size');
+          if (sizeEl) {
+            sizeEl.textContent = type === 'main'
+              ? `${mmW.toFixed(1)}×${mmH.toFixed(1)} mm${m.mockup.mainMm ? ` → ${m.mockup.mainMm.w}×${m.mockup.mainMm.h} mm نهایی` : ''}`
+              : `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
           }
         };
-        apply();
+        box.apply();
         this.bindBoxDrag(box, m);
         State.boxes.push(box);
         const del = el.querySelector('.cd-rect-del');
         if (del) del.addEventListener('click', e => {
           e.stopPropagation();
           if (type === 'main') {
-            if (confirm('فریم اصلی حذف شود؟ فایل چاپ بعد از این بر اساس فضای چاپ برش می‌خورد.')) {
-              m.mockup.mainRect = null;
-              this.renderBoxes(m);
-            }
+            State.mainStash[m.id] = m.mockup.mainRect;
+            m.mockup.mainRect = null;
+            const sw = q('#mainOn'); if (sw) sw.checked = false;
+            q('#mainFields')?.classList.add('cd-off');
+            if (State.sel === 'main') State.sel = 'print';
           } else {
-            m.mockup.camRects.splice(idx, 1); this.renderBoxes(m);
+            m.mockup.camRects.splice(idx, 1);
+            if (State.sel === key) State.sel = null;
+            const cnt = q('#camCount'); if (cnt) cnt.textContent = faNum(m.mockup.camRects.length);
           }
+          this.renderBoxes(m);
+          this.markDirty();
         });
       };
-      mk('print', m.mockup.printRect, 0);
+
+      /* پایین → بالا: فریم اصلی، فضای چاپ، دوربین‌ها */
       if (m.mockup.mainRect) mk('main', m.mockup.mainRect, 0);
-      m.mockup.camRects.forEach((c, i) => mk('cam', c, i));
+      mk('print', m.mockup.printRect, 0);
+      (m.mockup.camRects || []).forEach((c, i) => mk('cam', c, i));
+
+      if (!keepLayers) this.renderLayers(m);
+      else this.syncLayerInputs(this.selBox());
     },
-    bindBoxDrag(box, m) {
-      const el = box.el, s = State.displayScale;
+
+    /* فهرست لایه‌ها: انتخاب، پنهان/آشکار، حذف و ویرایش عددی کادر انتخابی */
+    renderLayers(m) {
+      const host = q('#mkLayers');
+      if (!host) return;
+      const C = this.colors(m);
       const imgW = m.mockup.imgW || 800, imgH = m.mockup.imgH || 1500;
+      const topDown = State.boxes.slice().reverse();
+      host.innerHTML = topDown.map((b, i) => {
+        const name = b.type === 'print' ? 'فضای چاپ' : b.type === 'main' ? 'فریم اصلی طرح' : 'دوربین ' + faNum(b.idx + 1);
+        const hidden = !!State.hidden[b.key];
+        const isSel = State.sel === b.key;
+        const rad = b.type === 'cam' ? (b.r.r || 0) : (b.r.radius || 0);
+        const level = State.boxes.length - i;
+        return `<div class="cd-layer ${isSel ? 'sel' : ''} ${hidden ? 'off' : ''}" data-key="${b.key}">
+          <div class="cd-layer-row" data-sel="${b.key}">
+            <span class="cd-layer-dot" style="background:${C[b.type]}"></span>
+            <span class="cd-layer-name">${name}</span>
+            <span class="cd-layer-z">${b.type === 'main' ? 'زیر همه' : level === State.boxes.length ? 'روی همه' : 'لایهٔ ' + faNum(level)}</span>
+            <button class="cd-layer-btn" data-hide="${b.key}" title="${hidden ? 'نمایش کادر' : 'پنهان‌کردن کادر'}">${ic(hidden ? 'eyeOff' : 'eye', 13)}</button>
+            ${b.type === 'print' ? '' : `<button class="cd-layer-btn danger" data-del="${b.key}" title="${b.type === 'main' ? 'خاموش‌کردن فریم اصلی' : 'حذف کادر'}">${ic('trash', 13)}</button>`}
+          </div>
+          ${isSel ? `<div class="cd-layer-edit">
+            <div class="cd-mini-grid cd-mini-grid-3">
+              ${miniField('X', 'layX', Math.round(b.r.x), 'px', { min: 0, max: imgW })}
+              ${miniField('Y', 'layY', Math.round(b.r.y), 'px', { min: 0, max: imgH })}
+              ${miniField('عرض', 'layW', Math.round(b.r.w), 'px', { min: 20, max: imgW })}
+              ${miniField('ارتفاع', 'layH', Math.round(b.r.h), 'px', { min: 20, max: imgH })}
+              ${miniField('گردی', 'layR', Math.round(rad), 'px', { min: 0 })}
+            </div>
+            <span class="cd-layer-px">${ic('image', 11)} px روی تصویر ${faNum(imgW)}×${faNum(imgH)}</span>
+          </div>` : ''}
+        </div>`;
+      }).join('') || `<p class="cd-sec-note">${ic('info', 12)} تا تصویر موکاپ بارگذاری نشود، کادری ساخته نمی‌شود.</p>`;
+
+      qa('#mkLayers [data-sel]').forEach(row => row.addEventListener('click', e => {
+        if (e.target.closest('.cd-layer-btn')) return;
+        this.select(row.dataset.sel, m);
+      }));
+      qa('#mkLayers [data-hide]').forEach(btn => btn.addEventListener('click', () => {
+        const k = btn.dataset.hide;
+        State.hidden[k] = !State.hidden[k];
+        const el = q(`#imgWrap .cd-rect[data-key="${k}"]`);
+        if (el) el.style.display = State.hidden[k] ? 'none' : '';
+        this.renderLayers(m);
+      }));
+      qa('#mkLayers [data-del]').forEach(btn => btn.addEventListener('click', () => {
+        const box = State.boxes.find(b => b.key === btn.dataset.del);
+        if (!box) return;
+        box.el.querySelector('.cd-rect-del')?.click();
+      }));
+
+      const imgWv = imgW, imgHv = imgH;
+      const edit = (id, fn) => {
+        const inp = q('#' + id); if (!inp) return;
+        inp.addEventListener('input', () => {
+          const box = this.selBox(); if (!box) return;
+          fn(box, Math.round(+inp.value || 0), imgWv, imgHv);
+          box.apply();
+          this.syncSectionFields(box);
+          this.markDirty();
+        });
+      };
+      edit('layX', (b, v, W) => { b.r.x = Math.min(Math.max(v, 0), Math.max(0, W - b.r.w)); });
+      edit('layY', (b, v, W, H) => { b.r.y = Math.min(Math.max(v, 0), Math.max(0, H - b.r.h)); });
+      edit('layW', (b, v, W) => { b.r.w = Math.min(Math.max(v, 20), Math.max(20, W - b.r.x)); });
+      edit('layH', (b, v, W, H) => { b.r.h = Math.min(Math.max(v, 20), Math.max(20, H - b.r.y)); });
+      edit('layR', (b, v) => { const max = Math.min(b.r.w, b.r.h) / 2; this.setRadius(b, Math.min(v, max)); });
+    },
+
+    select(key, m) {
+      if (State.sel === key) return;
+      State.sel = key;
+      State.boxes.forEach(b => b.el.classList.toggle('sel', b.key === key));
+      this.renderLayers(m);
+    },
+
+    /* مقدارهای فیلدهای عددی لایه‌ی انتخابی را هنگام درگ به‌روز می‌کند */
+    syncLayerInputs(box) {
+      if (!box || State.sel !== box.key) return;
+      const set = (id, v) => { const el = q('#' + id); if (el && document.activeElement !== el) el.value = Math.round(v); };
+      set('layX', box.r.x); set('layY', box.r.y); set('layW', box.r.w); set('layH', box.r.h);
+      set('layR', box.type === 'cam' ? (box.r.r || 0) : (box.r.radius || 0));
+    },
+
+    /* همگام‌سازی فیلدهای ستون تنظیمات با کادری که روی بوم تغییر کرده */
+    syncSectionFields(box) {
+      if (!box) return;
+      const id = box.type === 'print' ? '#prRad' : box.type === 'main' ? '#mainRad' : '#camRad';
+      const inp = q(id);
+      const v = box.type === 'cam' ? (box.r.r || 0) : (box.r.radius || 0);
+      if (inp && document.activeElement !== inp) inp.value = Math.round(v);
+    },
+
+    bindBoxDrag(box, m) {
+      const el = box.el;
       el.addEventListener('pointerdown', e => {
         if (e.target.closest('.cd-rect-del')) return;
         e.preventDefault();
         try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        this.select(box.key, m);
+        const s = State.displayScale || 1;
+        const imgW = m.mockup.imgW || 800, imgH = m.mockup.imgH || 1500;
         const resize = !!e.target.closest('.cd-rect-handle');
         const radius = !!e.target.closest('.cd-rect-radhandle');
         const sx = e.clientX, sy = e.clientY;
@@ -726,113 +1006,151 @@
           const dx = (ev.clientX - sx) / s, dy = (ev.clientY - sy) / s;
           if (radius) {
             const maxR = Math.min(box.r.w, box.r.h) / 2;
-            const val = Math.max(0, Math.min(maxR, (orig.radius || orig.r || 0) + dx));
-            if (box.type === 'print') box.r.radius = val;
-            else if (box.type === 'main') box.r.radius = val;
-            else box.r.r = val;
-            el.style.borderRadius = (val * s) + 'px';
-            const inp = box.type === 'print' ? q('#prRad') : box.type === 'main' ? q('#mainRad') : q('#camRad');
-            if (inp) inp.value = Math.round(val);
+            this.setRadius(box, Math.min(maxR, (box.type === 'cam' ? (orig.r || 0) : (orig.radius || 0)) + dx));
+            this.syncSectionFields(box);
           } else if (resize) {
             box.r.w = Math.max(20, Math.min(imgW - box.r.x, orig.w + dx));
             box.r.h = Math.max(20, Math.min(imgH - box.r.y, orig.h + dy));
           } else {
-            box.r.x = Math.min(Math.max(orig.x + dx, 0), imgW - box.r.w);
-            box.r.y = Math.min(Math.max(orig.y + dy, 0), imgH - box.r.h);
+            box.r.x = Math.min(Math.max(orig.x + dx, 0), Math.max(0, imgW - box.r.w));
+            box.r.y = Math.min(Math.max(orig.y + dy, 0), Math.max(0, imgH - box.r.h));
           }
-          el.style.left = (box.r.x * s) + 'px'; el.style.top = (box.r.y * s) + 'px';
-          el.style.width = (box.r.w * s) + 'px'; el.style.height = (box.r.h * s) + 'px';
-          if (box.type === 'main') {
-            const mmW = (box.r.w / (m.mockup.printRect.w || 1)) * (m.mockup.printMm.w || 66);
-            const mmH = (box.r.h / (m.mockup.printRect.h || 1)) * (m.mockup.printMm.h || 138);
-            el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)}×${mmH.toFixed(1)} mm (فریم اصلی)`;
-          } else {
-            const mmW = (box.r.w / m.mockup.printRect.w) * m.mockup.printMm.w;
-            const mmH = (box.r.h / m.mockup.printRect.h) * m.mockup.printMm.h;
-            el.querySelector('.cd-rect-size').textContent = `${mmW.toFixed(1)} × ${mmH.toFixed(1)} میلی‌متر`;
-          }
+          box.apply();
+          this.syncLayerInputs(box);
+          this.markDirty();
         };
-        const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); };
+        const up = () => {
+          el.removeEventListener('pointermove', move);
+          el.removeEventListener('pointerup', up);
+          el.removeEventListener('pointercancel', up);
+          try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+        };
         el.addEventListener('pointermove', move);
         el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
       });
     },
+
+    /* جابه‌جایی دقیق کادر انتخابی با کیبورد (جهت‌نما = ۱px، Shift = ۱۰px) */
+    bindKeys() {
+      if (State.keyHandler) { document.removeEventListener('keydown', State.keyHandler); State.keyHandler = null; }
+      State.keyHandler = e => {
+        if (State.tab !== 'mockups') return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+        if (e.key === 'Escape') { State.sel = null; const m = this.current(); if (m) this.renderBoxes(m); return; }
+        const step = e.shiftKey ? 10 : 1;
+        let dx = 0, dy = 0;
+        if (e.key === 'ArrowLeft') dx = -step;
+        else if (e.key === 'ArrowRight') dx = step;
+        else if (e.key === 'ArrowUp') dy = -step;
+        else if (e.key === 'ArrowDown') dy = step;
+        else return;
+        const m = this.current(); const box = this.selBox();
+        if (!m || !box) return;
+        e.preventDefault();
+        const imgW = m.mockup.imgW || 800, imgH = m.mockup.imgH || 1500;
+        box.r.x = Math.min(Math.max(Math.round(box.r.x + dx), 0), Math.max(0, imgW - box.r.w));
+        box.r.y = Math.min(Math.max(Math.round(box.r.y + dy), 0), Math.max(0, imgH - box.r.h));
+        box.apply();
+        this.syncLayerInputs(box);
+        this.markDirty();
+      };
+      document.addEventListener('keydown', State.keyHandler);
+    },
+
     openAddModel() {
       let brandSel = 'apple';
       let pendingImg = null;
+      /* محصول ووکامرس: در وردپرس واقعی از لیست محصولات انتخاب می‌شود؛ در دمو شناسه دستی */
+      const productField = IS_WP
+        ? `<select class="cd-input" id="nmProduct"><option value="0">— در حال خواندن محصولات… —</option></select>`
+        : `<input class="cd-input" id="nmProduct" type="number" placeholder="مثلاً ۱۲۳" min="0">`;
+
       const veil = modal(`
-        <div class="cd-modal-head">${ic('plus', 17)} افزودن موکاپ جدید <button class="cd-modal-x" data-close>${ic('x', 13)}</button></div>
-        <div class="cd-modal-body">
-          <div class="cd-modal-cols">
-            <div>
-              <div class="cd-sec-title"><span class="cd-sec-bar"></span> برند و مشخصات</div>
-              <div class="cd-brandcards" id="nmBrands">
-                ${BRANDS.map((b, i) => `<button type="button" class="cd-brandcard ${i === 0 ? 'active' : ''}" data-brand="${b.id}">
-                  <span class="cd-brandcard-ic">${ic(b.ic, 20)}</span><b>${esc(b.name)}</b>
-                </button>`).join('')}
-              </div>
-              <div class="cd-fields cd-fields-2" style="margin-top:14px">
-                <label class="cd-field">نام مدل<input class="cd-input" id="nmName" placeholder="مثلاً iPhone 17 Pro"></label>
-                <label class="cd-field">قیمت (تومان)
-                  <div class="cd-input-group"><input class="cd-input" id="nmPrice" type="number" placeholder="350000" min="0"><span class="cd-suffix">تومان</span></div>
-                </label>
-                <label class="cd-field" style="grid-column: 1 / -1">محصول ووکامرس متصل — شناسه (اختیاری)
-                  <input class="cd-input" id="nmProduct" type="number" placeholder="مثلاً ۱۲۳" min="0">
-                  <span class="cd-helper">با وارد کردن شناسه، دکمه‌ی «افزودن به سبد خرید» مشتری به همین محصول وصل می‌شود.</span>
-                </label>
-              </div>
-            </div>
-            <div>
-              <div class="cd-sec-title"><span class="cd-sec-bar"></span> پیش‌نمایش زنده</div>
-              <div class="cd-modal-preview" id="nmPreview"><img id="nmPrevImg" src="${genMockupPreview('apple', '')}" alt="پیش‌نمایش موکاپ"></div>
-              <div class="cd-helper" id="nmPrevHint">موکاپ نمونه — با تایپ نام و تغییر برند، همین‌جا به‌روز می‌شود؛ با انتخاب تصویر، این جایگزین می‌شود.</div>
+        <div class="cd-modal-head">${ic('plus', 17)} افزودن موکاپ <button class="cd-modal-x" data-close>${ic('x', 13)}</button></div>
+        <div class="cd-modal-body cd-nm">
+          <div class="cd-nm-row">
+            <span class="cd-nm-lbl">برند</span>
+            <div class="cd-pills" id="nmBrands">
+              ${BRANDS.map((b, i) => `<button type="button" class="cd-pill ${i === 0 ? 'active' : ''}" data-brand="${b.id}">${ic(b.ic, 13)} ${esc(b.name)}</button>`).join('')}
             </div>
           </div>
-          <div class="cd-sec-title" style="margin-top:16px"><span class="cd-sec-bar"></span> تصویر موکاپ (اختیاری)</div>
-          <div class="cd-nmpreview" id="nmPrevWrap">
-            ${dropzoneHTML('nmDrop', { title: 'تصویر موکاپ را اینجا بکشید', hint: 'PNG یا JPG — تصویر گوشی یا قاب از روبرو', cta: 'انتخاب تصویر' })}
+          <div class="cd-nm-grid">
+            <label class="cd-field">نام مدل<input class="cd-input" id="nmName" placeholder="مثلاً iPhone 17 Pro"></label>
+            <label class="cd-field">قیمت
+              <div class="cd-input-group"><input class="cd-input" id="nmPrice" type="number" placeholder="350000" min="0"><span class="cd-suffix">تومان</span></div>
+            </label>
           </div>
-          <div class="cd-note" style="margin-top:12px">${ic('info', 14)} <span>اگر تصویری نگذارید، موکاپ نمونه خودکار ساخته می‌شود و بعداً از بخش «کادرکشی موکاپ» قابل تعویض است. بعد از ساخت، کادرهای چاپ و دوربین را همان‌جا تنظیم کنید.</span></div>
+          <label class="cd-field">محصول ووکامرس متصل <span class="cd-tag-opt">اختیاری</span>
+            ${productField}
+            <span class="cd-helper">دکمه‌ی «افزودن به سبد خرید» مشتری به این محصول وصل می‌شود.</span>
+          </label>
+          <div class="cd-nm-img">
+            <div class="cd-nm-drop" id="nmPrevWrap">
+              ${dropzoneHTML('nmDrop', { compact: true, title: 'تصویر موکاپ را اینجا بکشید', hint: 'PNG یا JPG — نمای روبروی گوشی یا قاب', cta: 'انتخاب تصویر' })}
+            </div>
+            <div class="cd-nm-prev">
+              <img id="nmPrevImg" src="${genMockupPreview('apple', '')}" alt="پیش‌نمایش موکاپ">
+              <span class="cd-nm-prevhint" id="nmPrevHint">پیش‌نمایش زنده</span>
+            </div>
+          </div>
+          <div class="cd-note">${ic('info', 14)} <span>بدون تصویر، موکاپ نمونه خودکار ساخته می‌شود و بعداً قابل تعویض است. بعد از ساخت، همان‌جا کادرهای چاپ و دوربین را تنظیم کنید.</span></div>
         </div>
         <div class="cd-modal-foot">
           <button class="cd-btn cd-btn-sm" data-close>انصراف</button>
           <button class="cd-btn cd-btn-primary cd-btn-sm" id="nmSave">${ic('check', 14)} ایجاد موکاپ</button>
-        </div>`, 'cd-modal-lg');
+        </div>`, 'cd-modal-md');
+
+      /* پرکردن لیست محصولات ووکامرس (فقط در وردپرس واقعی) */
+      if (IS_WP) {
+        (async () => {
+          const sel = q('#nmProduct');
+          if (!sel || sel.tagName !== 'SELECT') return;
+          const { ok, data } = await guarded(() => api('GET', '/products'), []);
+          const list = ok ? (data || []) : [];
+          if (!list.length) {
+            const inp = document.createElement('input');
+            inp.className = 'cd-input'; inp.id = 'nmProduct'; inp.type = 'number'; inp.min = '0';
+            inp.placeholder = 'شناسه محصول (مثلاً ۱۲۳)';
+            sel.replaceWith(inp);
+            return;
+          }
+          sel.innerHTML = `<option value="0">— بدون محصول —</option>` + list.map(p =>
+            `<option value="${p.id}">${esc(p.title)} — ${money(+p.price || 0)}${p.status === 'private' ? ' (خصوصی)' : ''} — #${p.id}</option>`).join('');
+        })();
+      }
 
       const refreshPrev = () => {
         if (pendingImg) return;
         const img = q('#nmPrevImg');
         if (img) img.src = genMockupPreview(brandSel, q('#nmName') ? q('#nmName').value : '');
       };
-
-      // انتخاب برند + به‌روزرسانی زنده‌ی پیش‌نمایش
-      qa('#nmBrands .cd-brandcard').forEach(c => c.addEventListener('click', () => {
-        qa('#nmBrands .cd-brandcard').forEach(x => x.classList.toggle('active', x === c));
+      qa('#nmBrands .cd-pill').forEach(c => c.addEventListener('click', () => {
+        qa('#nmBrands .cd-pill').forEach(x => x.classList.toggle('active', x === c));
         brandSel = c.dataset.brand;
         refreshPrev();
       }));
-
-      // تایپ نام → پیش‌نمایش زنده
       q('#nmName').addEventListener('input', refreshPrev);
 
-      // تصویر موکاپ: درگ‌انددراپ + پیش‌نمایش + حذف
+      const dropOpts = { compact: true, title: 'تصویر موکاپ را اینجا بکشید', hint: 'PNG یا JPG — نمای روبروی گوشی یا قاب', cta: 'انتخاب تصویر' };
       const showImage = url => {
         q('#nmPrevWrap').innerHTML = `
           <div class="cd-filebar">
             <img class="cd-filebar-thumb" src="${url}" alt="">
-            <div class="cd-filebar-info"><b>تصویر موکاپ انتخاب شد</b><span>PNG / JPG — در پیش‌نمایش سمت چپ قابل مشاهده است</span></div>
+            <div class="cd-filebar-info"><b>تصویر موکاپ انتخاب شد</b><span>PNG / JPG — در پیش‌نمایش کنار دیده می‌شود</span></div>
             <button type="button" class="cd-nmremove" id="nmRemove">${ic('trash', 12)} حذف</button>
           </div>`;
         const prev = q('#nmPrevImg');
         if (prev) prev.src = url;
         const hint = q('#nmPrevHint');
-        if (hint) hint.textContent = 'تصویر شما جایگزین موکاپ نمونه شد — بعد از ساخت، کادرها را روی همین تصویر تنظیم کنید.';
+        if (hint) hint.textContent = 'تصویر شما';
         q('#nmRemove').addEventListener('click', () => {
           pendingImg = null;
-          q('#nmPrevWrap').innerHTML = dropzoneHTML('nmDrop', { title: 'تصویر موکاپ را اینجا بکشید', hint: 'PNG یا JPG — تصویر گوشی یا قاب از روبرو', cta: 'انتخاب تصویر' });
+          q('#nmPrevWrap').innerHTML = dropzoneHTML('nmDrop', dropOpts);
           bindDropzone('nmDrop', onImg);
           const hint2 = q('#nmPrevHint');
-          if (hint2) hint2.textContent = 'موکاپ نمونه — با تایپ نام و تغییر برند، همین‌جا به‌روز می‌شود؛ با انتخاب تصویر، این جایگزین می‌شود.';
+          if (hint2) hint2.textContent = 'پیش‌نمایش زنده';
           refreshPrev();
         });
       };
@@ -840,13 +1158,12 @@
         const f = files[0];
         if (!f) return;
         const img = await processImageFile(f);
-        if (!img) return; // پیام خطا نمایش داده شده
+        if (!img) return;
         pendingImg = img.url;
         showImage(pendingImg);
       };
       bindDropzone('nmDrop', onImg);
 
-      // ارسال با Enter از فیلد نام
       q('#nmName').addEventListener('keydown', e => { if (e.key === 'Enter') q('#nmSave').click(); });
 
       q('#nmSave').addEventListener('click', async () => {
@@ -854,8 +1171,7 @@
         const name = nameEl.value.trim();
         if (!name) {
           nameEl.focus();
-          nameEl.style.borderColor = 'var(--cd-bad-l)';
-          nameEl.style.boxShadow = '0 0 0 4px rgba(179, 38, 30, .12)';
+          nameEl.classList.add('cd-bad-input');
           return toast('نام مدل را بنویسید', 'err');
         }
         const data = { name, brandId: brandSel, price: Math.max(0, +q('#nmPrice').value || 350000), productId: Math.max(0, +q('#nmProduct').value || 0) };

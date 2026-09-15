@@ -3,7 +3,7 @@
  * Plugin Name: قاب‌ساز تیساکیس — طراحی قاب گوشی
  * Plugin URI:  https://tisacase.com
  * Description: ادیتور طراحی قاب گوشی با دو کادر راهنما (چاپ/دوربین)، پیش‌نمایش با برش نمایشی دوربین و فایل چاپ کاملِ بدون برش برای چاپخانه + یکپارچگی کامل با ووکامرس.
- * Version:     1.6.17
+ * Version:     1.6.19
  * Author:      TisaCase
  * Text Domain: case-designer
  * Domain Path: /languages
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // نسخهٔ استایل/اسکریپت (cache-buster) — همیشه با «Version:» هدر بالا هم‌سطح بماند،
 // وگرنه مرورگرها CSS/JS قدیمی را از کش سرویس می‌کنند و فیکس‌ها دیده نمی‌شوند.
-define( 'CASE_DESIGNER_VERSION', '1.6.17' );
+define( 'CASE_DESIGNER_VERSION', '1.6.19' );
 define( 'CASE_DESIGNER_PATH', plugin_dir_path( __FILE__ ) );
 define( 'CASE_DESIGNER_URL', plugin_dir_url( __FILE__ ) );
 
@@ -93,6 +93,7 @@ class Case_Designer_Assets {
 		wp_localize_script( 'case-designer-admin', 'CaseDesignerAdmin', array(
 			'restUrl' => esc_url_raw( rest_url( 'case-designer/v1' ) ),
 			'nonce'   => wp_create_nonce( 'wp_rest' ),
+			'version' => CASE_DESIGNER_VERSION,
 		) );
 	}
 }
