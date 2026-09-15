@@ -54,7 +54,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.21';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.22';
   // v1.6.20 — آپدیت خودافزونه از zip محلی
   const CD_UPDATE_URL = (IS_WP && window.CaseDesignerAdmin.updateUrl) || '';
   const CD_UPDATE_NONCE = (IS_WP && window.CaseDesignerAdmin.updateNonce) || '';
@@ -89,8 +89,6 @@
     boxes: '<path d="M3.5 7.5L12 3l8.5 4.5-8.5 4.5z"/><path d="M3.5 12.2L12 16.7l8.5-4.5"/><path d="M3.5 16.8L12 21.5l8.5-4.7"/><path d="M12 16.7V21.5"/>',
     link: '<path d="M9 15l6-6"/><path d="M8.5 12.5l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M15.5 11.5l2-2a3.5 3.5 0 0 0-5-5l-2 2"/>',
     chev: '<path d="M6 9.5l6 6 6-6"/>',
-    up: '<path d="M12 19V5"/><path d="M5.5 11.5L12 5l6.5 6.5"/>',
-    down: '<path d="M12 5v14"/><path d="M5.5 12.5L12 19l6.5-6.5"/>',
     copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
     pencil: '<path d="M4 20l4.5-1L20 7.5a2.12 2.12 0 0 0-3-3L5.5 16 4 20z"/>',
     eyeOff: '<path d="M4 4l16 16"/><path d="M9.6 9.7A2.9 2.9 0 0 0 12 14.9c.8 0 1.5-.3 2-.8"/><path d="M6.5 6.7C4.1 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1.1"/><path d="M18.8 15.4c1.7-1.6 2.7-3.4 2.7-3.4S18 5.5 12 5.5c-.7 0-1.4.1-2 .2"/>',
@@ -555,21 +553,20 @@
     },
 
     /* نوار افقی و فشرده‌ی موکاپ‌ها (جایگزین لیست ستونی بلند)
-       v1.6.21: هر موکاپ دکمه‌های مدیریت دارد: جابه‌جایی ترتیب (↑↓)، دوپلیکیت (⧉)، تغییر نام (✎)، حذف (🗑) */
+       v1.6.21: هر موکاپ دکمه‌های مدیریت دارد: دوپلیکیت (⧉)، تغییر نام (✎)، حذف (🗑)
+       v1.6.22: جابه‌جایی ترتیب با درگ‌ودراپ چپ/راست (دکمه‌های ↑↓ حذف شدند) */
     renderList() {
       const list = q('#mockupList');
       if (!list) return;
-      const chips = State.models.map((m, i) => {
+      const chips = State.models.map(m => {
         const b = brandOf(m.brandId);
-        return `<div class="cd-mchip ${m.id === State.modelId ? 'active' : ''}" data-id="${m.id}" title="${esc(m.name)} — ${esc(b.name)}">
-          ${m.mockup.img ? `<img class="cd-mchip-thumb" src="${esc(m.mockup.img)}" alt="">` : `<span class="cd-mchip-thumb cd-mchip-noimg">${ic('image', 15)}</span>`}
+        return `<div class="cd-mchip ${m.id === State.modelId ? 'active' : ''}" data-id="${m.id}" draggable="true" title="${esc(m.name)} — ${esc(b.name)} — برای جابه‌جایی ترتیب، بکشید">
+          ${m.mockup.img ? `<img class="cd-mchip-thumb" src="${esc(m.mockup.img)}" alt="" draggable="false">` : `<span class="cd-mchip-thumb cd-mchip-noimg">${ic('image', 15)}</span>`}
           <span class="cd-mchip-txt"><b>${esc(m.name)}</b><span>${esc(b.name)} · ${money(m.price)}</span></span>
           <span class="cd-mchip-acts">
-            <button type="button" class="cd-mchip-act" data-mv="up" data-id="${m.id}" title="انتقال به جلو" ${i === 0 ? 'disabled' : ''}>${ic('up', 12)}</button>
-            <button type="button" class="cd-mchip-act" data-mv="down" data-id="${m.id}" title="انتقال به عقب" ${i === State.models.length - 1 ? 'disabled' : ''}>${ic('down', 12)}</button>
-            <button type="button" class="cd-mchip-act" data-dup="${m.id}" title="دوپلیکیت موکاپ">${ic('copy', 12)}</button>
-            <button type="button" class="cd-mchip-act" data-ren="${m.id}" title="تغییر نام">${ic('pencil', 12)}</button>
-            <button type="button" class="cd-mchip-del" data-del="${m.id}" title="حذف موکاپ">${ic('trash', 12)}</button>
+            <button type="button" class="cd-mchip-act" data-dup="${m.id}" title="دوپلیکیت موکاپ" draggable="false">${ic('copy', 12)}</button>
+            <button type="button" class="cd-mchip-act" data-ren="${m.id}" title="تغییر نام" draggable="false">${ic('pencil', 12)}</button>
+            <button type="button" class="cd-mchip-del" data-del="${m.id}" title="حذف موکاپ" draggable="false">${ic('trash', 12)}</button>
           </span>
         </div>`;
       }).join('');
@@ -579,19 +576,78 @@
       const hint = State.models.length ? ''
         : `<span class="cd-mk-striphint">${ic('info', 13)} هنوز موکاپی ندارید — اولین قاب را بسازید و کادرهایش را تنظیم کنید.</span>`;
       list.innerHTML = addChip + chips + hint;
+      let dragJustEnded = 0; // بعد از in-drag، کلیکِ «انتخاب موکاپ» خاموش بماند
       qa('#mockupList .cd-mchip[data-id]').forEach(el => el.addEventListener('click', e => {
-        if (e.target.closest('[data-del]') || e.target.closest('[data-mv]') || e.target.closest('[data-dup]') || e.target.closest('[data-ren]')) return;
+        if (Date.now() - dragJustEnded < 250) return;
+        if (e.target.closest('[data-del]') || e.target.closest('[data-dup]') || e.target.closest('[data-ren]')) return;
         State.modelId = el.dataset.id;
         State.sel = null; State.hidden = {};
         this.renderList(); this.renderEditor();
       }));
-      /* v1.6.21 — جابه‌جایی ترتیب (آپدیت در همان لحظه + ذخیره در سرور) */
-      qa('#mockupList [data-mv]').forEach(b => b.addEventListener('click', async () => {
-        const i = State.models.findIndex(x => x.id === b.dataset.id);
-        const j = i + (b.dataset.mv === 'up' ? -1 : 1);
-        if (i < 0 || j < 0 || j >= State.models.length) return;
+      /* v1.6.22 — جابه‌جایی ترتیب با درگ‌ودراپ چپ/راست (جایگزین دکمه‌های ↑↓)
+         نوار RTL است: آیتمِ ۱ راست‌ترین است؛ سمتِ راستِ مرکزِ یک چیپ = قبل از
+         آن (نزدیک‌تر به شروع)، سمتِ چپ = بعد از آن. ترتیب مثل قبل روی سرور ذخیره می‌شود. */
+      let dragged = null;   // چیپِ در حال درگ
+      let ind = null;       // نشانگرِ خطِ insertion
+      const mkIndicator = () => {
+        if (ind) return ind;
+        ind = document.createElement('span');
+        ind.className = 'cd-mk-drop-ind';
+        return ind;
+      };
+      const removeIndicator = () => { if (ind && ind.parentNode) ind.parentNode.removeChild(ind); ind = null; };
+      const otherChips = () => Array.from(list.querySelectorAll('.cd-mchip[data-id]')).filter(el => el !== dragged);
+      // اولین چیپ (به ترتیبِ نوار، از راست) که مؤشر سمتِ راستِ مرکزش است →
+      // نشانگر قبل از آن می‌نشیند؛ هیچی نباشد (مؤشر از همه سمتِ چپ) → انتهای نوار.
+      const chipBefore = x => {
+        for (const el of otherChips()) {
+          const r = el.getBoundingClientRect();
+          if (x > r.left + r.width / 2) return el;
+        }
+        return null;
+      };
+      const showIndicator = x => {
+        removeIndicator();
+        const before = chipBefore(x);
+        if (before) list.insertBefore(mkIndicator(), before);
+        else list.appendChild(mkIndicator());
+      };
+      qa('#mockupList .cd-mchip[data-id]').forEach(el => {
+        el.addEventListener('dragstart', e => {
+          dragged = el;
+          el.classList.add('cd-mchip-drag');
+          e.dataTransfer.effectAllowed = 'move';
+          try { e.dataTransfer.setData('text/plain', el.dataset.id); } catch (_) {}
+          // نشانگر را در فریم بعد بگذار — وگرنه داخلِ تصویرِ drag هم دیده می‌شود
+          requestAnimationFrame(() => { if (dragged === el) showIndicator(e.clientX); });
+        });
+        el.addEventListener('dragend', () => {
+          dragged = null;
+          el.classList.remove('cd-mchip-drag');
+          removeIndicator();
+          dragJustEnded = Date.now();
+        });
+      });
+      list.addEventListener('dragover', e => {
+        if (!dragged) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        showIndicator(e.clientX);
+      });
+      list.addEventListener('drop', async e => {
+        if (!dragged) return;
+        e.preventDefault();
+        const id = dragged.dataset.id;
+        const before = chipBefore(e.clientX);
+        dragged = null;
+        removeIndicator();
         const arr = State.models.slice();
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+        const from = arr.findIndex(x => x.id === id);
+        if (from < 0) return;
+        const [moved] = arr.splice(from, 1);
+        const to = before ? arr.findIndex(x => x.id === before.dataset.id) : arr.length;
+        if (to === from) return; // همان جای قبل — تغییری نشده
+        arr.splice(to, 0, moved);
         State.models = arr;
         this.renderList();
         const { ok } = await guarded(() => Store.reorderModels(arr.map(x => x.id)));
@@ -600,7 +656,7 @@
           State.models = (await guarded(() => Store.models(), State.models)).data;
           this.renderList();
         }
-      }));
+      });
       /* v1.6.21 — دوپلیکیت */
       qa('#mockupList [data-dup]').forEach(b => b.addEventListener('click', async () => {
         const m = State.models.find(x => x.id === b.dataset.dup);

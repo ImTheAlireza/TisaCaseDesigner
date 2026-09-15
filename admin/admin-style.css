@@ -416,6 +416,19 @@
 }
 .case-designer-admin .cd-mk-striphint .cd-ic { width: 13px; height: 13px; }
 
+/* ---------- v1.6.22: درگ‌ودراپ چپ/راست برای ترتیب موکاپ‌ها (جایگزین دکمه‌های ↑↓) ---------- */
+.case-designer-admin .cd-mchip[draggable="true"] { cursor: grab; }
+.case-designer-admin .cd-mchip[draggable="true"]:active { cursor: grabbing; }
+.case-designer-admin .cd-mchip-drag { opacity: .45; }
+.case-designer-admin .cd-mchip-drag .cd-mchip-del { opacity: 0; }
+.case-designer-admin .cd-mk-drop-ind {
+  flex: 0 0 auto; width: 3px; align-self: stretch; margin: 7px 1px;
+  border-radius: 999px; background: var(--cd-teal);
+  box-shadow: 0 0 0 3px rgba(14, 122, 107, .16);
+  animation: cdDropPulse 1s ease-in-out infinite;
+}
+@keyframes cdDropPulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+
 /* ---------- کارت اصلی: سربرگ + بوم + ستون ---------- */
 .case-designer-admin .cd-mk-card { padding: 16px; }
 .case-designer-admin .cd-mk-head {

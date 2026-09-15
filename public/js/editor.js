@@ -11,6 +11,7 @@ const EditorEngine = {
   _objects: null,
   /* v1.6.21 — سایه‌ی زنده‌ی طراحی در صفحه‌ی ادیت (update در لحظه با هر جابه‌جایی) */
   _shadowImg: null,
+  _shadowPad: 0, // فیکس 1.6.22 — حاشیه‌ی داخلی texture سایه (px تصویر موکاپ)
   _shadowRaf: 0,
   _shadowGen: 0,
   state: { preview: false, zoom: 1 },
@@ -98,6 +99,7 @@ const EditorEngine = {
     const canvas = this.canvas;
     this._clearKeepBg();
     canvas.backgroundColor = '#f3f4f6';
+    this._shadowImg = null; this._shadowPad = 0; // لایه‌ی سایه با clear پاک شد — ارجاع کهنه نماند
     fabric.Image.fromURL(imgUrl, img => {
       if (!this.model) return;
       this.model.mockup.imgW = img.width; this.model.mockup.imgH = img.height;
@@ -428,12 +430,14 @@ const EditorEngine = {
       o.setCoords();
     });
     // v1.6.21 — سایه‌ی زنده را هم با همان مقیاس تازه جابه‌جا/مقیاس می‌کنیم (سبک — بدون بازسازی تکسچر)
+    // فیکس (1.6.22): آفست سایه در texture bake شده؛ اینجا فقط pad را کم می‌کنیم
     if (this._shadowImg && this._shadowImg.canvas === this.canvas) {
-      const sh = this._previewShadow();
+      const pad = this._shadowPad || 0;
+      const el = this._shadowImg.getElement ? this._shadowImg.getElement() : this._shadowImg._element;
       this._shadowImg.set({
-        left: newOff.x,
-        top: newOff.y + (sh ? sh.offsetY * newFit : 0),
-        width: m.imgW, height: m.imgH,
+        left: newOff.x - pad * newFit,
+        top: newOff.y - pad * newFit,
+        width: (el && el.width) || m.imgW, height: (el && el.height) || m.imgH,
         scaleX: newFit, scaleY: newFit,
       });
       this._shadowImg.setCoords();
@@ -681,17 +685,22 @@ const EditorEngine = {
     return this._createMaskedDesignCanvas().then(masked => {
       if (!masked) return null;
       const W = m.imgW, H = m.imgH;
+      // حاشیه‌ی امن (فیکس 1.6.22): ctx.shadow حدود blur*1.5 + offset بیرونِ
+      // سیلوئت پخش می‌شود. با بومِ هم‌اندازه‌ی موکاپ، سایه در لبه‌های تصویر
+      // بریده می‌شد و خطِ خشک می‌ساخت — حالا بوم با pad دورتادور بزرگ‌تر است.
+      const pad = Math.ceil(sh.offsetX + sh.offsetY + sh.blur * 1.5) || 0;
+      const TW = W + pad * 2, TH = H + pad * 2;
       // ۱) سیلوئتِ شفافِ طرح → سیاهِ کامل (opaque) — تا سایه‌اش کامل بیفتد
       const opq = document.createElement('canvas');
-      opq.width = W; opq.height = H;
+      opq.width = TW; opq.height = TH;
       const octx = opq.getContext('2d');
-      octx.drawImage(masked, 0, 0);
+      octx.drawImage(masked, pad, pad);
       octx.globalCompositeOperation = 'source-in';
       octx.fillStyle = '#000';
-      octx.fillRect(0, 0, W, H);
+      octx.fillRect(0, 0, TW, TH);
       // ۲) رسم با shadow — دقیقاً هم‌پارامتر با generateFullPreviewDataURL
       const bc = document.createElement('canvas');
-      bc.width = W; bc.height = H;
+      bc.width = TW; bc.height = TH;
       const bctx = bc.getContext('2d');
       bctx.shadowColor = sh.color;
       bctx.shadowBlur = sh.blur;
@@ -703,7 +712,7 @@ const EditorEngine = {
       bctx.globalCompositeOperation = 'destination-out';
       bctx.drawImage(opq, 0, 0);
       bctx.globalCompositeOperation = 'source-over';
-      return bc;
+      return { tex: bc, pad };
     });
   },
 
@@ -727,26 +736,35 @@ const EditorEngine = {
       canvas.requestRenderAll();
       return;
     }
-    const tex = await this._buildShadowTexture();
+    const res = await this._buildShadowTexture();
     if (gen !== this._shadowGen) return; // به‌روزرسانی تازه‌تری راه افتاده
     if (!canvas || this.state.preview) return;
-    if (!tex) { canvas.requestRenderAll(); return; }
-    const img = new fabric.Image(tex, {
-      left: (this.offset?.x || 0),
-      top: (this.offset?.y || 0) + sh.offsetY * (this.fitScale || 1),
-      width: m.imgW, height: m.imgH,
-      scaleX: this.fitScale || 1, scaleY: this.fitScale || 1,
+    if (!res) { canvas.requestRenderAll(); return; }
+    const s = this.fitScale || 1;
+    // فیکس (1.6.22): آفستِ سایه داخلِ texture خودش bake شده است، پس تکسچر دقیقاً
+    // هم‌جای تصویرِ موکاپ می‌نشیند (با کسر pad). قبلاً top به‌علاوه‌ی offsetY*fit
+    // می‌شد و سایه با دو برابرِ فاصله‌ی تنظیم‌شده جابه‌جا می‌شد.
+    const img = new fabric.Image(res.tex, {
+      left: (this.offset?.x || 0) - res.pad * s,
+      top: (this.offset?.y || 0) - res.pad * s,
+      width: res.tex.width, height: res.tex.height,
+      scaleX: s, scaleY: s,
       originX: 'left', originY: 'top',
       selectable: false, evented: false, hasControls: false, hasBorders: false,
       excludeFromExport: true, objectCaching: true,
       name: '__design_shadow__',
     });
     canvas.add(img);
-    // دقیقاً بالای موکاپ و زیر لایه‌های کاربر بنشیند (index 1)
-    const i = canvas.getObjects().indexOf(img);
-    if (i > 1) { canvas.remove(img); canvas.insertAt(img, 1); }
     this._shadowImg = img;
-    this._topMasks(); // ماسک‌ها و راهنماها همیشه بالا
+    this._shadowPad = res.pad;
+    // فیکس (1.6.22): سایه باید بالای ماسک‌های «خارجِ فضای چاپ» بنشیند تا — مثل
+    // مودالِ پیش‌نمایش — روی بدنه‌ی قاب دیده شود. قبلاً سایه زیر ماسک‌ها بود و
+    // قسمتی که روی قاب می‌افتاد (همان هدف سایه) با رنگ زمینه پاک می‌شد.
+    // چون سیلوئت از texture پاک شده (destination-out)، قرار گرفتنش بالای لایه‌های
+    // کاربر بی‌ضرر است: فقط نواحی دورِ طرح تاریک می‌شوند.
+    this._topMasks();
+    img.bringToFront();
+    if (this.guideGroup) this.guideGroup.bringToFront();
     canvas.requestRenderAll();
   },
 
@@ -757,6 +775,7 @@ const EditorEngine = {
     this._objects = this.canvas.getObjects().slice();
     this._clearKeepBg();
     this._shadowImg = null; // لایه‌ی سایه همراه بوم پاک شد؛ کامپوزیتِ پیش‌نمایش خودش سایه دارد
+    this._shadowPad = 0;
     this.state.preview = true;
     window.dispatchEvent(new CustomEvent('editor:changed'));
     return this.generateFullPreviewDataURL().then(dataUrl => {
