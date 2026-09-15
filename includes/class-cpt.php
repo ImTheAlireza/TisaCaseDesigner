@@ -23,6 +23,7 @@ class Case_Designer_CPT {
 	const META_BRAND   = '_case_brand';   // apple | samsung | xiaomi
 	const META_PRICE   = '_case_price';   // تومان
 	const META_PRODUCT = '_case_product'; // شناسه‌ی محصول ووکامرس متصل (اختیاری)
+	const META_ORDER   = '_case_order';   // v1.6.21 — ترتیب نمایش موکاپ‌ها (اعداد متوالی)
 
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register' ) );
@@ -132,6 +133,8 @@ class Case_Designer_CPT {
 
 	/**
 	 * لیست همه‌ی مدل‌ها برای REST (شبیه db.models در دمو)
+	 * v1.6.21: مرتب‌سازی بر اساس meta «_case_order» (برای جابه‌جایی دستی
+	 * از پنل) و در صورت نبود، تاریخ ساخت.
 	 */
 	public static function all_models() {
 		$out    = array();
@@ -139,7 +142,17 @@ class Case_Designer_CPT {
 			'post_type'      => 'case_model',
 			'posts_per_page' => -1,
 			'post_status'    => 'publish',
+			'orderby'        => 'date',
+			'order'          => 'ASC',
 		) );
+		usort( $models, function ( $a, $b ) {
+			$oa = (int) get_post_meta( $a->ID, self::META_ORDER, true );
+			$ob = (int) get_post_meta( $b->ID, self::META_ORDER, true );
+			if ( $oa !== $ob ) {
+				return $oa - $ob;
+			}
+			return $a->ID - $b->ID;
+		} );
 		foreach ( $models as $m ) {
 			$mockup = self::get_mockup( $m->ID );
 			$out[]  = array(
@@ -148,6 +161,7 @@ class Case_Designer_CPT {
 				'brandId'   => get_post_meta( $m->ID, self::META_BRAND, true ),
 				'price'     => (float) get_post_meta( $m->ID, self::META_PRICE, true ),
 				'productId' => (int) get_post_meta( $m->ID, self::META_PRODUCT, true ),
+				'order'     => (int) get_post_meta( $m->ID, self::META_ORDER, true ),
 				'mockup'    => array_merge( $mockup, array(
 					'img' => $mockup['img_id'] ? wp_get_attachment_url( $mockup['img_id'] ) : '',
 				) ),

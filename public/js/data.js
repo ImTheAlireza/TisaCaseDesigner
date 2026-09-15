@@ -204,6 +204,10 @@ const DB = {
         storeName: 'تیساکیس', currency: 'تومان', defaultDpi: 300,
         guidesOn: true, guidesNote: 'برش دوربین فقط در پیش‌نمایش اعمال می‌شود؛ فایل ارسالی به چاپخانه بدون برش ذخیره می‌گردد.',
         printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
+        // v1.6.20 — سایه‌ی پیش‌نمایش (فاصله‌ی ~۲mm چاپ تا صفحه)
+        previewShadow: true, previewShadowOpacity: 30, previewShadowOffsetMm: 1, previewShadowBlurMm: 2,
+        // v1.6.21 — قیمت پیش‌فرض موکاپ‌های جدید
+        defaultPrice: 668,
       },
       brands, models,
       stickers: STICKERS.map(s => ({ id: s.id, name: s.name, url: s.url })),
@@ -282,6 +286,10 @@ const CaseDesignerDB = (function () {
       currency: CD.currency || 'تومان',
       defaultDpi: 300, guidesOn: true, guidesNote: DEFAULT_GUIDES_NOTE,
       printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
+      // v1.6.20 — سایه‌ی پیش‌نمایش (فاصله‌ی ~۲mm چاپ تا صفحه)
+      previewShadow: true, previewShadowOpacity: 30, previewShadowOffsetMm: 1, previewShadowBlurMm: 2,
+      // v1.6.21 — قیمت پیش‌فرض موکاپ‌های جدید
+      defaultPrice: 668,
     }, CD.settings || {});
   }
 

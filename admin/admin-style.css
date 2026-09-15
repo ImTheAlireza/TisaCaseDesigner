@@ -945,3 +945,63 @@
 #case-designer-root .case-designer-admin .cd-nmremove { border: 1px solid rgba(179, 38, 30, .28); background: var(--cd-card); color: var(--cd-bad-l); }
 #case-designer-root .case-designer-admin .cd-modal-x { border: none; background: #f6f4ee; color: #6f6a5e; }
 #case-designer-root .case-designer-admin .cd-modal-x:hover { background: #fbeae8; color: #b3261e; }
+
+/* ---------- v1.6.20: بخش آپدیت خودافزونه (تب تنظیمات) ---------- */
+.case-designer-admin .cd-upd { max-width: 780px; }
+.case-designer-admin .cd-upd-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.case-designer-admin .cd-upd-cur { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--cd-ink2); font-weight: 700; }
+.case-designer-admin .cd-upd-cur .cd-ic { color: var(--cd-teal); }
+.case-designer-admin .cd-upd-cur b { color: var(--cd-ink); font-size: 13.5px; }
+.case-designer-admin .cd-upd-form { display: contents; }
+.case-designer-admin .cd-upd-form input[type="file"] { display: none; }
+.case-designer-admin .cd-upd-note {
+  display: flex; gap: 9px; align-items: flex-start;
+  background: var(--cd-line-soft); color: var(--cd-ink2);
+  border-radius: 12px; padding: 10px 14px; font-size: 12px; line-height: 1.9; margin-top: 12px;
+}
+.case-designer-admin .cd-upd-note .cd-ic { color: var(--cd-teal); margin-top: 6px; flex-shrink: 0; }
+.case-designer-admin .cd-upd-backups { margin-top: 16px; }
+.case-designer-admin .cd-upd-bhead { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; color: var(--cd-ink2); margin-bottom: 8px; flex-wrap: wrap; }
+.case-designer-admin .cd-upd-bhead .cd-ic { color: var(--cd-amber); }
+.case-designer-admin .cd-upd-bhead .cd-helper { margin-top: 0; }
+.case-designer-admin .cd-upd-blist { display: flex; flex-direction: column; gap: 6px; }
+.case-designer-admin .cd-upd-bitem {
+  display: flex; align-items: center; gap: 10px;
+  border: 1.5px solid var(--cd-line); border-radius: 12px; padding: 8px 12px;
+  background: var(--cd-card);
+}
+.case-designer-admin .cd-upd-bver { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: var(--cd-teal-d); white-space: nowrap; }
+.case-designer-admin .cd-upd-bdate { font-size: 11px; color: var(--cd-ink3); white-space: nowrap; }
+.case-designer-admin .cd-upd-bitem .cd-btn { margin-inline-start: auto; }
+
+/* هم‌بندی با حالت دمو (#case-designer-root) */
+#case-designer-root .case-designer-admin .cd-upd-bitem { border: 1.5px solid var(--cd-line); background: var(--cd-card); }
+#case-designer-root .case-designer-admin .cd-upd-form { border: none; }
+
+/* ---------- v1.6.21: مدیریت پیشرفته موکاپ‌ها (دکمه‌های روی چیپ) ---------- */
+.case-designer-admin .cd-mchip-acts { display: inline-flex; align-items: center; gap: 1px; margin-inline-start: 4px; flex-shrink: 0; }
+.case-designer-admin .cd-mchip-act {
+  width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
+  border: none; background: transparent; color: var(--cd-ink3); cursor: pointer; padding: 0;
+}
+.case-designer-admin .cd-mchip-act:hover { background: var(--cd-line-soft); color: var(--cd-ink); }
+.case-designer-admin .cd-mchip-act:disabled { opacity: .35; pointer-events: none; }
+.case-designer-admin .cd-mchip-del { margin-inline-start: 2px; }
+/* دکمه‌ی اپدیت سریع در هدر */
+.case-designer-admin .cd-qupd {
+  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-teal-d); cursor: pointer;
+  transition: all .15s;
+}
+.case-designer-admin .cd-qupd:hover { border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal); }
+.case-designer-admin .cd-qupd:active { transform: scale(.94); }
+/* لینک شماره سفارش → ویرایش سفارش ووکامرس */
+.case-designer-admin .cd-olink { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: var(--cd-ink); }
+.case-designer-admin .cd-olink:hover { color: var(--cd-teal-d); }
+.case-designer-admin .cd-olink .cd-ic { color: var(--cd-teal); }
+
+/* هم‌بندی با حالت دمو (#case-designer-root) */
+#case-designer-root .case-designer-admin .cd-mchip-act { border: none; background: transparent; }
+#case-designer-root .case-designer-admin .cd-mchip-act:hover { background: var(--cd-line-soft); }
+#case-designer-root .case-designer-admin .cd-qupd { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-teal-d); }
+#case-designer-root .case-designer-admin .cd-olink { color: inherit; }
