@@ -54,7 +54,7 @@
   const IS_WP = !!window.CaseDesignerAdmin;                       // داخل وردپرس واقعی؟
   const REST_BASE = IS_WP ? (window.CaseDesignerAdmin.restUrl || '/wp-json/case-designer/v1') : null;
   const NONCE = IS_WP ? (window.CaseDesignerAdmin.nonce || '') : '';
-  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.20';
+  const VERSION = (IS_WP && window.CaseDesignerAdmin.version) || '1.6.21';
   // v1.6.20 — آپدیت خودافزونه از zip محلی
   const CD_UPDATE_URL = (IS_WP && window.CaseDesignerAdmin.updateUrl) || '';
   const CD_UPDATE_NONCE = (IS_WP && window.CaseDesignerAdmin.updateNonce) || '';
@@ -89,6 +89,10 @@
     boxes: '<path d="M3.5 7.5L12 3l8.5 4.5-8.5 4.5z"/><path d="M3.5 12.2L12 16.7l8.5-4.5"/><path d="M3.5 16.8L12 21.5l8.5-4.7"/><path d="M12 16.7V21.5"/>',
     link: '<path d="M9 15l6-6"/><path d="M8.5 12.5l-2 2a3.5 3.5 0 0 0 5 5l2-2"/><path d="M15.5 11.5l2-2a3.5 3.5 0 0 0-5-5l-2 2"/>',
     chev: '<path d="M6 9.5l6 6 6-6"/>',
+    up: '<path d="M12 19V5"/><path d="M5.5 11.5L12 5l6.5 6.5"/>',
+    down: '<path d="M12 5v14"/><path d="M5.5 12.5L12 19l6.5-6.5"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+    pencil: '<path d="M4 20l4.5-1L20 7.5a2.12 2.12 0 0 0-3-3L5.5 16 4 20z"/>',
     eyeOff: '<path d="M4 4l16 16"/><path d="M9.6 9.7A2.9 2.9 0 0 0 12 14.9c.8 0 1.5-.3 2-.8"/><path d="M6.5 6.7C4.1 8.3 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1.1"/><path d="M18.8 15.4c1.7-1.6 2.7-3.4 2.7-3.4S18 5.5 12 5.5c-.7 0-1.4.1-2 .2"/>',
     layers: '<path d="M12 3.4l8.6 4.3-8.6 4.3-8.6-4.3z"/><path d="M4.4 12.2l7.6 3.8 7.6-3.8"/><path d="M4.4 16.4L12 20.2l7.6-3.8"/>',
   };
@@ -166,6 +170,8 @@
     editorPageId: 0,
     // v1.6.20 — سایه‌ی پیش‌نمایش (فاصله‌ی ~۲mm چاپ تا صفحه)
     previewShadow: true, previewShadowOpacity: 30, previewShadowOffsetMm: 1, previewShadowBlurMm: 2,
+    // v1.6.21 — قیمت پیش‌فرض موکاپ‌های جدید (تومان)
+    defaultPrice: 668,
   };
 
   const COLOR_PALETTE = [
@@ -199,6 +205,10 @@
     async saveMockup(id, mockup) { return await api('POST', `/models/${id}/mockup`, mockup); },
     async replaceImage(id, image) { return await api('POST', `/models/${id}/image`, { image }); },
     async deleteModel(id) { return await api('DELETE', `/models/${id}`); },
+    /* v1.6.21 — مدیریت پیشرفته موکاپ‌ها */
+    async renameModel(id, name) { return this.strIds(await api('POST', `/models/${id}`, { name })); },
+    async duplicateModel(id) { return this.strIds(await api('POST', `/models/${id}/duplicate`)); },
+    async reorderModels(ids) { return await api('POST', '/models/reorder', { order: (ids || []).map(x => +x || 0) }); },
     async stickers() { return this.strIds(await api('GET', '/stickers')); },
     async addSticker(name, image) { return await api('POST', '/stickers', { name, image }); },
     async deleteSticker(id) { return await api('DELETE', `/stickers/${id}`); },
@@ -220,13 +230,20 @@
         img: data.mockupImg, printRect: { ...PRINT_RECT }, mainRect: { ...MAIN_RECT }, camRects: CAM_RECTS[style].map(c => ({ ...c })),
         printMm: { w: 66, h: 138 }, mainMm: { w: 74, h: 148 }, dpi: 300, mainColor: '#10b981',
       } : window.generateMockup(style, palette[0], palette[1], data.name);
-      db.models.push({ id: 'custom-' + Date.now(), brandId: data.brandId, name: data.name, price: data.price || 350000, productId: data.productId || 0, mockup });
+      // v1.6.21: قیمت پیش‌فرض از تنظیمات (۶۶۸)؛ محصول از «محصول پیش‌فرض» تنظیمات
+      const defPrice = (db.settings && db.settings.defaultPrice) || 668;
+      const defProduct = (db.settings && db.settings.defaultProductId) || 0;
+      db.models.push({ id: 'custom-' + Date.now(), brandId: data.brandId, name: data.name, price: (data.price !== undefined ? data.price : defPrice), productId: (data.productId || defProduct) || 0, mockup });
       DB.save(db);
       return db.models;
     },
     async saveMockup(id, mockup) { const db = DB.get(); const m = db.models.find(x => x.id === id); if (m) { Object.assign(m.mockup, mockup); DB.save(db); } return db.models; },
     async replaceImage(id, image) { const db = DB.get(); const m = db.models.find(x => x.id === id); if (m) { m.mockup.img = image; DB.save(db); } return db.models; },
     async deleteModel(id) { const db = DB.get(); db.models = db.models.filter(m => m.id !== id); DB.save(db); return db.models; },
+    /* v1.6.21 — مدیریت پیشرفته موکاپ‌ها (دمو) */
+    async renameModel(id, name) { const db = DB.get(); const m = db.models.find(x => x.id === id); if (m) { m.name = name; DB.save(db); } return db.models; },
+    async duplicateModel(id) { const db = DB.get(); const m = db.models.find(x => x.id === id); if (m) { const c = JSON.parse(JSON.stringify(m)); c.id = 'custom-' + Date.now(); c.name = m.name + ' (کپی)'; db.models.push(c); DB.save(db); } return db.models; },
+    async reorderModels(ids) { const db = DB.get(); db.models = ids.map(i => db.models.find(x => String(x.id) === String(i))).filter(Boolean); DB.save(db); return db.models; },
     async stickers() { return DB.get().stickers; },
     async addSticker(name, image) { const db = DB.get(); const s = { id: uid(), name, url: image }; db.stickers.push(s); DB.save(db); return s; },
     async deleteSticker(id) { const db = DB.get(); db.stickers = db.stickers.filter(x => x.id !== id); DB.save(db); return db.stickers; },
@@ -237,9 +254,12 @@
     async saveSettings(s) { const db = DB.get(); Object.assign(db.settings, s); DB.save(db); return db.settings; },
     async orders() {
       return DB.get().orders.map(o => ({
-        id: String(o.id), code: o.code, date: o.date, modelName: o.modelName,
+        id: String(o.id), code: o.code, date: o.date,
+        productName: 'قاب چاپی (دمو)', mockupModel: o.modelName, // v1.6.21 — در دمو، modelName همان مدل موکاپ است
+        modelName: o.modelName,
         qty: o.qty || 1, price: o.price, status: o.status,
         thumb: o.thumb, printFile: o.printFile, printDpi: o.printDpi || 300,
+        editUrl: '',
       }));
     },
     async setOrderStatus(id, status) { const db = DB.get(); const o = db.orders.find(x => String(x.id) === String(id)); if (o) { o.status = status; DB.save(db); } return true; },
@@ -534,16 +554,23 @@
       this.bindKeys();
     },
 
-    /* نوار افقی و فشرده‌ی موکاپ‌ها (جایگزین لیست ستونی بلند) */
+    /* نوار افقی و فشرده‌ی موکاپ‌ها (جایگزین لیست ستونی بلند)
+       v1.6.21: هر موکاپ دکمه‌های مدیریت دارد: جابه‌جایی ترتیب (↑↓)، دوپلیکیت (⧉)، تغییر نام (✎)، حذف (🗑) */
     renderList() {
       const list = q('#mockupList');
       if (!list) return;
-      const chips = State.models.map(m => {
+      const chips = State.models.map((m, i) => {
         const b = brandOf(m.brandId);
         return `<div class="cd-mchip ${m.id === State.modelId ? 'active' : ''}" data-id="${m.id}" title="${esc(m.name)} — ${esc(b.name)}">
           ${m.mockup.img ? `<img class="cd-mchip-thumb" src="${esc(m.mockup.img)}" alt="">` : `<span class="cd-mchip-thumb cd-mchip-noimg">${ic('image', 15)}</span>`}
           <span class="cd-mchip-txt"><b>${esc(m.name)}</b><span>${esc(b.name)} · ${money(m.price)}</span></span>
-          <button class="cd-mchip-del" data-del="${m.id}" title="حذف موکاپ">${ic('trash', 12)}</button>
+          <span class="cd-mchip-acts">
+            <button type="button" class="cd-mchip-act" data-mv="up" data-id="${m.id}" title="انتقال به جلو" ${i === 0 ? 'disabled' : ''}>${ic('up', 12)}</button>
+            <button type="button" class="cd-mchip-act" data-mv="down" data-id="${m.id}" title="انتقال به عقب" ${i === State.models.length - 1 ? 'disabled' : ''}>${ic('down', 12)}</button>
+            <button type="button" class="cd-mchip-act" data-dup="${m.id}" title="دوپلیکیت موکاپ">${ic('copy', 12)}</button>
+            <button type="button" class="cd-mchip-act" data-ren="${m.id}" title="تغییر نام">${ic('pencil', 12)}</button>
+            <button type="button" class="cd-mchip-del" data-del="${m.id}" title="حذف موکاپ">${ic('trash', 12)}</button>
+          </span>
         </div>`;
       }).join('');
       // دکمه‌ی «موکاپ جدید» اولِ نوار (در RTL یعنی راست‌ترین و همیشه دیده‌شونده) می‌نشیند
@@ -553,11 +580,45 @@
         : `<span class="cd-mk-striphint">${ic('info', 13)} هنوز موکاپی ندارید — اولین قاب را بسازید و کادرهایش را تنظیم کنید.</span>`;
       list.innerHTML = addChip + chips + hint;
       qa('#mockupList .cd-mchip[data-id]').forEach(el => el.addEventListener('click', e => {
-        if (e.target.closest('[data-del]')) return;
+        if (e.target.closest('[data-del]') || e.target.closest('[data-mv]') || e.target.closest('[data-dup]') || e.target.closest('[data-ren]')) return;
         State.modelId = el.dataset.id;
         State.sel = null; State.hidden = {};
         this.renderList(); this.renderEditor();
       }));
+      /* v1.6.21 — جابه‌جایی ترتیب (آپدیت در همان لحظه + ذخیره در سرور) */
+      qa('#mockupList [data-mv]').forEach(b => b.addEventListener('click', async () => {
+        const i = State.models.findIndex(x => x.id === b.dataset.id);
+        const j = i + (b.dataset.mv === 'up' ? -1 : 1);
+        if (i < 0 || j < 0 || j >= State.models.length) return;
+        const arr = State.models.slice();
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        State.models = arr;
+        this.renderList();
+        const { ok } = await guarded(() => Store.reorderModels(arr.map(x => x.id)));
+        if (!ok) {
+          toast('ذخیره‌ی ترتیب ناموفق بود', 'err');
+          State.models = (await guarded(() => Store.models(), State.models)).data;
+          this.renderList();
+        }
+      }));
+      /* v1.6.21 — دوپلیکیت */
+      qa('#mockupList [data-dup]').forEach(b => b.addEventListener('click', async () => {
+        const m = State.models.find(x => x.id === b.dataset.dup);
+        if (!m) return;
+        const btn = b; btn.disabled = true;
+        const { ok, data } = await guarded(() => Store.duplicateModel(m.id), null);
+        if (ok) {
+          State.models = Array.isArray(data) ? data : (await guarded(() => Store.models(), State.models)).data;
+          State.modelId = State.models[State.models.length - 1]?.id || State.modelId;
+          this.renderList(); this.renderEditor();
+          toast('یک کپی از «' + m.name + '» ساخته شد');
+        } else {
+          btn.disabled = false;
+          toast('دوپلیکیت ناموفق بود', 'err');
+        }
+      }));
+      /* v1.6.21 — تغییر نام */
+      qa('#mockupList [data-ren]').forEach(b => b.addEventListener('click', () => this.openRename(b.dataset.ren)));
       qa('#mockupList [data-del]').forEach(b => b.addEventListener('click', async () => {
         const m = State.models.find(x => x.id === b.dataset.del);
         if (!m || !confirm(`موکاپ «${m.name}» حذف شود؟`)) return;
@@ -568,6 +629,37 @@
         toast('موکاپ حذف شد');
       }));
       q('#btnAddModel')?.addEventListener('click', () => this.openAddModel());
+    },
+
+    /* v1.6.21 — مودال تغییر نام موکاپ */
+    openRename(id) {
+      const m = State.models.find(x => x.id === id);
+      if (!m) return;
+      const veil = modal(`
+        <div class="cd-modal-head">${ic('pencil', 16)} تغییر نام موکاپ <button class="cd-modal-x" data-close>${ic('x', 13)}</button></div>
+        <div class="cd-modal-body">
+          <label class="cd-field">نام مدل<input class="cd-input" id="renName" value="${esc(m.name)}" maxlength="80"></label>
+        </div>
+        <div class="cd-modal-foot">
+          <button class="cd-btn cd-btn-sm" data-close>انصراف</button>
+          <button class="cd-btn cd-btn-primary cd-btn-sm" id="renSave">${ic('check', 14)} ثبت</button>
+        </div>`, 'cd-modal-sm');
+      const inp = q('#renName');
+      setTimeout(() => { inp.focus(); inp.select(); }, 0);
+      const save = async () => {
+        const name = inp.value.trim();
+        if (!name) return toast('نام را خالی نگذارید', 'err');
+        const btn = q('#renSave'); if (btn) btn.disabled = true;
+        const { ok, data } = await guarded(() => Store.renameModel(m.id, name), null);
+        if (ok) {
+          State.models = Array.isArray(data) ? data : (await guarded(() => Store.models(), State.models)).data;
+          this.renderList(); this.renderEditor();
+          toast('نام موکاپ تغییر کرد');
+        } else toast('ذخیره ناموفق بود', 'err');
+        veil.remove();
+      };
+      q('#renSave').addEventListener('click', save);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
     },
 
     /* سربرگ + بوم + ستون تنظیمات */
@@ -1076,13 +1168,16 @@
       document.addEventListener('keydown', State.keyHandler);
     },
 
-    openAddModel() {
+    async openAddModel() {
       let brandSel = 'apple';
       let pendingImg = null;
-      /* محصول ووکامرس: در وردپرس واقعی از لیست محصولات انتخاب می‌شود؛ در دمو شناسه دستی */
-      const productField = IS_WP
-        ? `<select class="cd-input" id="nmProduct"><option value="0">— در حال خواندن محصولات… —</option></select>`
-        : `<input class="cd-input" id="nmProduct" type="number" placeholder="مثلاً ۱۲۳" min="0">`;
+      /* v1.6.21: فیلد محصول از این مودال حذف شد — همه‌ی موکاپ‌ها از «محصول
+         پیش‌فرض» صفحه‌ی تنظیمات پیروی می‌کنند. قیمت پیش‌فرض هم از آنجا می‌آید. */
+      if (!State.settings || State.settings.defaultPrice === undefined) {
+        const { data } = await guarded(() => Store.settings(), {});
+        State.settings = { ...DEFAULT_SETTINGS, ...(data || {}) };
+      }
+      const defPrice = (State.settings && State.settings.defaultPrice) || 668;
 
       const veil = modal(`
         <div class="cd-modal-head">${ic('plus', 17)} افزودن موکاپ <button class="cd-modal-x" data-close>${ic('x', 13)}</button></div>
@@ -1096,13 +1191,10 @@
           <div class="cd-nm-grid">
             <label class="cd-field">نام مدل<input class="cd-input" id="nmName" placeholder="مثلاً iPhone 17 Pro"></label>
             <label class="cd-field">قیمت
-              <div class="cd-input-group"><input class="cd-input" id="nmPrice" type="number" placeholder="350000" min="0"><span class="cd-suffix">تومان</span></div>
+              <div class="cd-input-group"><input class="cd-input" id="nmPrice" type="number" value="${defPrice}" min="0"><span class="cd-suffix">تومان</span></div>
+              <span class="cd-helper">پیش‌فرض از «قیمت پیش‌فرض» تنظیمات</span>
             </label>
           </div>
-          <label class="cd-field">محصول ووکامرس متصل <span class="cd-tag-opt">اختیاری</span>
-            ${productField}
-            <span class="cd-helper">دکمه‌ی «افزودن به سبد خرید» مشتری به این محصول وصل می‌شود.</span>
-          </label>
           <div class="cd-nm-img">
             <div class="cd-nm-drop" id="nmPrevWrap">
               ${dropzoneHTML('nmDrop', { compact: true, title: 'تصویر موکاپ را اینجا بکشید', hint: 'PNG یا JPG — نمای روبروی گوشی یا قاب', cta: 'انتخاب تصویر' })}
@@ -1118,25 +1210,6 @@
           <button class="cd-btn cd-btn-sm" data-close>انصراف</button>
           <button class="cd-btn cd-btn-primary cd-btn-sm" id="nmSave">${ic('check', 14)} ایجاد موکاپ</button>
         </div>`, 'cd-modal-md');
-
-      /* پرکردن لیست محصولات ووکامرس (فقط در وردپرس واقعی) */
-      if (IS_WP) {
-        (async () => {
-          const sel = q('#nmProduct');
-          if (!sel || sel.tagName !== 'SELECT') return;
-          const { ok, data } = await guarded(() => api('GET', '/products'), []);
-          const list = ok ? (data || []) : [];
-          if (!list.length) {
-            const inp = document.createElement('input');
-            inp.className = 'cd-input'; inp.id = 'nmProduct'; inp.type = 'number'; inp.min = '0';
-            inp.placeholder = 'شناسه محصول (مثلاً ۱۲۳)';
-            sel.replaceWith(inp);
-            return;
-          }
-          sel.innerHTML = `<option value="0">— بدون محصول —</option>` + list.map(p =>
-            `<option value="${p.id}">${esc(p.title)} — ${money(+p.price || 0)}${p.status === 'private' ? ' (خصوصی)' : ''} — #${p.id}</option>`).join('');
-        })();
-      }
 
       const refreshPrev = () => {
         if (pendingImg) return;
@@ -1191,7 +1264,8 @@
           nameEl.classList.add('cd-bad-input');
           return toast('نام مدل را بنویسید', 'err');
         }
-        const data = { name, brandId: brandSel, price: Math.max(0, +q('#nmPrice').value || 350000), productId: Math.max(0, +q('#nmProduct').value || 0) };
+        // v1.6.21: productId ارسال نمی‌شود — سرور از «محصول پیش‌فرض» تنظیمات استفاده می‌کند
+        const data = { name, brandId: brandSel, price: Math.max(0, +q('#nmPrice').value || defPrice) };
         if (pendingImg) data.mockupImg = pendingImg;
         const btn = q('#nmSave');
         btn.disabled = true;
@@ -1334,9 +1408,17 @@
             <thead><tr><th>سفارش</th><th>طرح</th><th>مدل</th><th>تعداد</th><th>مبلغ</th><th>وضعیت</th><th>تاریخ</th><th>عملیات</th></tr></thead>
             <tbody>${State.orders.map(o => `
               <tr>
-                <td><b>${esc(o.code)}</b><div class="cd-sub">#${faNum(o.id)}</div></td>
+                <td>
+                  ${o.editUrl
+                    ? `<a class="cd-olink" href="${esc(o.editUrl)}" target="_blank" rel="noopener" title="بازکردن سفارش در ووکامرس"><b>${esc(o.code)}</b> ${ic('link', 11)}</a>`
+                    : `<b>${esc(o.code)}</b>`}
+                  <div class="cd-sub">#${faNum(o.id)}</div>
+                </td>
                 <td>${o.thumb ? `<img class="cd-thumb" src="${esc(o.thumb)}" alt="">` : `<span class="cd-sub">${ic('image', 15)}</span>`}</td>
-                <td>${esc(o.modelName)}</td>
+                <td>
+                  <b>${esc(o.productName || o.modelName || '—')}</b>
+                  ${o.mockupModel ? `<div class="cd-sub">${ic('mobile', 11)} ${esc(o.mockupModel)}</div>` : ''}
+                </td>
                 <td>${faNum(o.qty)}</td>
                 <td>${money(o.price)}</td>
                 <td><select class="cd-input cd-status" data-status="${o.id}">
@@ -1431,7 +1513,12 @@
                 <option value="0">— انتخاب کنید —</option>
                 ${defaultProductOptions}
               </select>
+              <span class="cd-helper">v1.6.21: همه‌ی موکاپ‌ها (و دکمه‌ی «افزودن به سبد خرید») از همین محصول پیروی می‌کنند</span>
               ${productsErr ? '<span class="cd-helper" style="color:var(--cd-bad)">خطا در دریافت محصولات</span>' : ''}
+            </label>
+            <label class="cd-field">قیمت پیش‌فرض (تومان)
+              <input type="number" class="cd-input" id="setDefaultPrice" value="${S.defaultPrice ?? 668}" min="0">
+              <span class="cd-helper">پیش‌فرض فیلد «قیمت» در مودال افزودن موکاپ (پیش‌فرض: ۶۶۸)</span>
             </label>
           </div>
 
@@ -1514,6 +1601,8 @@
           restoreDraft: q('#setRestoreDraft').checked,
           editorPageId: +q('#setEditorPage').value || 0,
           defaultProductId: +q('#setDefaultProduct').value || 0,
+          // v1.6.21 — قیمت پیش‌فرض موکاپ‌های جدید
+          defaultPrice: Math.max(0, +q('#setDefaultPrice').value || 0),
           // v1.6.20 — سایه‌ی پیش‌نمایش
           previewShadow: shadowSw ? shadowSw.checked : true,
           previewShadowOpacity: Math.min(100, Math.max(0, +q('#shOpacity').value || 0)),
@@ -1609,6 +1698,8 @@
         <div class="cd-hstats" id="cdHstats">
           <span class="cd-hchip"><span class="cd-dot ${IS_WP ? (serverDown ? 'bad' : 'ok') : 'ok'}"></span> ${IS_WP ? (serverDown ? 'اتصال قطع است' : 'ووکامرس متصل') : 'حالت دمو'}</span>
           <span class="cd-hchip"><span class="cd-dot ${serverDown ? 'bad' : 'ok'}"></span> ذخیره‌سازی ${serverDown ? 'خطا' : 'فعال'}</span>
+          ${IS_WP ? `<button type="button" class="cd-qupd" id="cdQuickUpdate" title="اپدیت سریع — بایگانی zip افزونه را انتخاب کنید">${ic('refresh', 14)}</button>
+          <input type="file" id="cdQuickZip" accept=".zip,application/zip,application/x-zip-compressed" class="cd-hidden">` : ''}
         </div>
       </div>
       ${IS_WP ? `<div id="cdServerBanner" class="cd-banner cd-hidden"></div>` : ''}
@@ -1625,6 +1716,7 @@
       <div class="cd-savebar" id="cdSavebar"></div>
       <div class="cd-credit">${ic('heart', 13)} ساخته شده توسط علیرضا شعبان زاده</div>`;
     qa('#cdTabs .cd-tab').forEach(b => b.addEventListener('click', () => CasePanel.render(b.dataset.tab)));
+    bindQuickUpdate(); // v1.6.21 — دکمه‌ی اپدیت سریع در هدر
   }
 
   function savebarFor(tab) {
@@ -1674,6 +1766,34 @@
     savebarFor(State.tab);
   }
 
+  /* v1.6.21 — اپدیت سریع از هدر: کلیک روی آیکن → انتخاب zip → نصب (با همان
+     مسیر امنِ تب تنظیمات: پشتیبان خودکار + بازگشت خودکار در خطا) */
+  function bindQuickUpdate() {
+    const btn = q('#cdQuickUpdate'), fileIn = q('#cdQuickZip');
+    if (!btn || !fileIn || fileIn.dataset.bound) return;
+    fileIn.dataset.bound = '1';
+    btn.addEventListener('click', () => fileIn.click());
+    fileIn.addEventListener('change', e => {
+      const f = e.target.files[0];
+      e.target.value = '';
+      if (!f) return;
+      if (!/\.zip$/i.test(f.name)) { toast('فایل باید بایگانی zip باشد (پسوند .zip)', 'err'); return; }
+      if (!confirm('افزونه با فایل «' + f.name + '» به‌روزرسانی شود؟\nنسخه‌ی فعلی پیش از آن پشتیبان گرفته می‌شود.')) return;
+      const form = document.createElement('form');
+      form.action = CD_UPDATE_URL;
+      form.method = 'post';
+      form.enctype = 'multipart/form-data';
+      const nh = document.createElement('input');
+      nh.type = 'hidden'; nh.name = 'cd_nonce'; nh.value = CD_UPDATE_NONCE;
+      const fi = document.createElement('input');
+      fi.type = 'file'; fi.name = 'cd_update_zip';
+      try { const dt = new DataTransfer(); dt.items.add(f); fi.files = dt.files; } catch (_) { form.remove(); return toast('انتخاب فایل دوباره امتحان کنید', 'err'); }
+      form.appendChild(nh); form.appendChild(fi);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  }
+
   window.CasePanel = {
     render,
     refresh: () => render(State.tab),
@@ -1681,7 +1801,10 @@
       const host = q('#cdHstats'); if (!host) return;
       host.innerHTML = `
         <span class="cd-hchip"><span class="cd-dot ${IS_WP ? (serverDown ? 'bad' : 'ok') : 'ok'}"></span> ${IS_WP ? (serverDown ? 'اتصال قطع است' : 'ووکامرس متصل') : 'حالت دمو'}</span>
-        <span class="cd-hchip"><span class="cd-dot ${serverDown ? 'bad' : 'ok'}"></span> ذخیره‌سازی ${serverDown ? 'خطا' : 'فعال'}</span>`;
+        <span class="cd-hchip"><span class="cd-dot ${serverDown ? 'bad' : 'ok'}"></span> ذخیره‌سازی ${serverDown ? 'خطا' : 'فعال'}</span>
+        ${IS_WP ? `<button type="button" class="cd-qupd" id="cdQuickUpdate" title="اپدیت سریع — بایگانی zip افزونه را انتخاب کنید">${ic('refresh', 14)}</button>
+        <input type="file" id="cdQuickZip" accept=".zip,application/zip,application/x-zip-compressed" class="cd-hidden">` : ''}`;
+      bindQuickUpdate();
     },
   };
   window.Admin = window.CasePanel; // سازگاری با دموی قبلی

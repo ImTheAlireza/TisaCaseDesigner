@@ -977,3 +977,31 @@
 /* هم‌بندی با حالت دمو (#case-designer-root) */
 #case-designer-root .case-designer-admin .cd-upd-bitem { border: 1.5px solid var(--cd-line); background: var(--cd-card); }
 #case-designer-root .case-designer-admin .cd-upd-form { border: none; }
+
+/* ---------- v1.6.21: مدیریت پیشرفته موکاپ‌ها (دکمه‌های روی چیپ) ---------- */
+.case-designer-admin .cd-mchip-acts { display: inline-flex; align-items: center; gap: 1px; margin-inline-start: 4px; flex-shrink: 0; }
+.case-designer-admin .cd-mchip-act {
+  width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
+  border: none; background: transparent; color: var(--cd-ink3); cursor: pointer; padding: 0;
+}
+.case-designer-admin .cd-mchip-act:hover { background: var(--cd-line-soft); color: var(--cd-ink); }
+.case-designer-admin .cd-mchip-act:disabled { opacity: .35; pointer-events: none; }
+.case-designer-admin .cd-mchip-del { margin-inline-start: 2px; }
+/* دکمه‌ی اپدیت سریع در هدر */
+.case-designer-admin .cd-qupd {
+  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center;
+  border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-teal-d); cursor: pointer;
+  transition: all .15s;
+}
+.case-designer-admin .cd-qupd:hover { border-color: var(--cd-teal); background: var(--cd-teal-soft); color: var(--cd-teal); }
+.case-designer-admin .cd-qupd:active { transform: scale(.94); }
+/* لینک شماره سفارش → ویرایش سفارش ووکامرس */
+.case-designer-admin .cd-olink { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: var(--cd-ink); }
+.case-designer-admin .cd-olink:hover { color: var(--cd-teal-d); }
+.case-designer-admin .cd-olink .cd-ic { color: var(--cd-teal); }
+
+/* هم‌بندی با حالت دمو (#case-designer-root) */
+#case-designer-root .case-designer-admin .cd-mchip-act { border: none; background: transparent; }
+#case-designer-root .case-designer-admin .cd-mchip-act:hover { background: var(--cd-line-soft); }
+#case-designer-root .case-designer-admin .cd-qupd { border: 1.5px solid var(--cd-line); background: var(--cd-card); color: var(--cd-teal-d); }
+#case-designer-root .case-designer-admin .cd-olink { color: inherit; }

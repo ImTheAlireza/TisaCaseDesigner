@@ -16,10 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Case_Designer_Woo {
 
-	/** متادیتای آیتم: JSON طراحی + آدرس فایل چاپ + تامبنیل */
+	/** متادیتای آیتم: JSON طراحی + آدرس فایل چاپ + تامبنیل + مدلِ موکاپ (v1.6.21) */
 	const META_DESIGN     = '_case_design';
 	const META_PRINT_FILE = '_case_print_file';
 	const META_THUMB      = '_case_thumb';
+	const META_MODEL_NAME = '_case_model_name';
 
 	public static function init() {
 		// هوک‌ها را همیشه اضافه می‌کنیم — حتی اگر ووکامرس هنوز لود نشده باشد
@@ -348,6 +349,10 @@ class Case_Designer_Woo {
 		}
 		if ( ! empty( $values[ self::META_THUMB ] ) ) {
 			$item->add_meta_data( self::META_THUMB, $values[ self::META_THUMB ] );
+		}
+		// v1.6.21: نام مدلِ موکاپ (مثلاً «iPhone 17 Pro») — برای جدول سفارش‌های قاب‌ساز
+		if ( ! empty( $values['model_name'] ) ) {
+			$item->add_meta_data( self::META_MODEL_NAME, sanitize_text_field( $values['model_name'] ) );
 		}
 	}
 

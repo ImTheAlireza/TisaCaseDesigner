@@ -206,6 +206,8 @@ const DB = {
         printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
         // v1.6.20 — سایه‌ی پیش‌نمایش (فاصله‌ی ~۲mm چاپ تا صفحه)
         previewShadow: true, previewShadowOpacity: 30, previewShadowOffsetMm: 1, previewShadowBlurMm: 2,
+        // v1.6.21 — قیمت پیش‌فرض موکاپ‌های جدید
+        defaultPrice: 668,
       },
       brands, models,
       stickers: STICKERS.map(s => ({ id: s.id, name: s.name, url: s.url })),
@@ -286,6 +288,8 @@ const CaseDesignerDB = (function () {
       printColor: '#304ffe', camColor: '#ed1944', mainColor: '#10b981',
       // v1.6.20 — سایه‌ی پیش‌نمایش (فاصله‌ی ~۲mm چاپ تا صفحه)
       previewShadow: true, previewShadowOpacity: 30, previewShadowOffsetMm: 1, previewShadowBlurMm: 2,
+      // v1.6.21 — قیمت پیش‌فرض موکاپ‌های جدید
+      defaultPrice: 668,
     }, CD.settings || {});
   }
 

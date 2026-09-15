@@ -9,6 +9,10 @@ const EditorEngine = {
   canvas: null,
   guideGroup: null,
   _objects: null,
+  /* v1.6.21 — سایه‌ی زنده‌ی طراحی در صفحه‌ی ادیت (update در لحظه با هر جابه‌جایی) */
+  _shadowImg: null,
+  _shadowRaf: 0,
+  _shadowGen: 0,
   state: { preview: false, zoom: 1 },
 
   fitScale: 1,
@@ -345,15 +349,27 @@ const EditorEngine = {
     this.canvas.on('selection:created', e => this.onSelect(e.selected));
     this.canvas.on('selection:updated', e => this.onSelect(e.selected));
     this.canvas.on('selection:cleared', () => this.onSelect([]));
-    this.canvas.on('object:modified', () => this.onObjectChanged());
+    this.canvas.on('object:modified', () => { this.onObjectChanged(); this._scheduleShadowUpdate(); });
     this.canvas.on('object:added', o => {
       const t = o.target;
       if (!t.excludeFromExport && !t.__loading) {
-        if (!this.state.preview) this._topMasks();
+        if (!this.state.preview) {
+          this._topMasks();
+          this._scheduleShadowUpdate();
+        }
         this.onObjectChanged();
       }
     });
-    this.canvas.on('object:removed', o => { if (!o.target.excludeFromExport) this.onObjectChanged(); });
+    this.canvas.on('object:removed', o => {
+      if (!o.target.excludeFromExport) {
+        this.onObjectChanged();
+        this._scheduleShadowUpdate();
+      }
+    });
+    /* v1.6.21 — سایه در حینِ درگ/اسکیل/چرخش هم ریل‌تایم به‌روز شود (rAF-throttled) */
+    ['object:moving', 'object:scaling', 'object:rotating', 'text:editing:exited'].forEach(ev => {
+      this.canvas.on(ev, () => this._scheduleShadowUpdate());
+    });
     this.canvas.on('mouse:wheel', opt => {
       const d = opt.e.deltaY;
       let zoom = this.state.zoom * (0.999 ** d);
@@ -411,6 +427,17 @@ const EditorEngine = {
       }
       o.setCoords();
     });
+    // v1.6.21 — سایه‌ی زنده را هم با همان مقیاس تازه جابه‌جا/مقیاس می‌کنیم (سبک — بدون بازسازی تکسچر)
+    if (this._shadowImg && this._shadowImg.canvas === this.canvas) {
+      const sh = this._previewShadow();
+      this._shadowImg.set({
+        left: newOff.x,
+        top: newOff.y + (sh ? sh.offsetY * newFit : 0),
+        width: m.imgW, height: m.imgH,
+        scaleX: newFit, scaleY: newFit,
+      });
+      this._shadowImg.setCoords();
+    }
     if (!this.state.preview) this.renderGuides();
     this.canvas.setZoom(this.state.zoom);
     this._clampViewport();
@@ -635,12 +662,101 @@ const EditorEngine = {
     };
   },
 
+  /* ---------- v1.6.21 — سایه‌ی زنده در صفحه‌ی ادیت ----------
+     همان سایه‌ی پیش‌نمایش، ولی به‌صورت لایه‌ی جدا روی کنوس — با هر
+     جابه‌جایی/مقیاس‌بندی/چرخش لایه‌ها، ریل‌تایم به‌روز می‌شود.
+     مکانیک: سیلوئتِ واحدِ کل طرح (همان ماسک‌خورده‌ی پیش‌نمایش) به‌صورت
+     سیاه روی بومِ جدا رندر می‌شود و با پارامترهای ctx.shadow* (همان
+     shadowBlur/offset که کامپوزیتِ مودال استفاده می‌کند) سایه‌اش ساخته
+     می‌شود؛ بعد خودِ سیلوئت با destination-out پاک می‌شود تا فقط سایه
+     بماند. نتیجه: اجزا روی هم سایه نمی‌اندازند و سایه دقیقاً هم‌سان
+     مودالِ پیش‌نمایش است.
+     لایه در همه‌ی خروجی‌ها excludeFromExport:true دارد — serialize،
+     فایل چاپ و تامبنیل‌ها دست‌نخورده می‌مانند؛ فایل چاپ تنها خروجی
+     بدون سایه است (طبق درخواست کاربر). */
+  _buildShadowTexture() {
+    const m = this.model?.mockup;
+    const sh = this._previewShadow();
+    if (!m || !m.imgW || !sh || !this.layers().length) return Promise.resolve(null);
+    return this._createMaskedDesignCanvas().then(masked => {
+      if (!masked) return null;
+      const W = m.imgW, H = m.imgH;
+      // ۱) سیلوئتِ شفافِ طرح → سیاهِ کامل (opaque) — تا سایه‌اش کامل بیفتد
+      const opq = document.createElement('canvas');
+      opq.width = W; opq.height = H;
+      const octx = opq.getContext('2d');
+      octx.drawImage(masked, 0, 0);
+      octx.globalCompositeOperation = 'source-in';
+      octx.fillStyle = '#000';
+      octx.fillRect(0, 0, W, H);
+      // ۲) رسم با shadow — دقیقاً هم‌پارامتر با generateFullPreviewDataURL
+      const bc = document.createElement('canvas');
+      bc.width = W; bc.height = H;
+      const bctx = bc.getContext('2d');
+      bctx.shadowColor = sh.color;
+      bctx.shadowBlur = sh.blur;
+      bctx.shadowOffsetX = sh.offsetX;
+      bctx.shadowOffsetY = sh.offsetY;
+      bctx.drawImage(opq, 0, 0);
+      // ۳) خودِ سیلوئت را حذف کن (قسمتِ سایه که زیر اجزاست، در فیزیک هم دیده نمی‌شود)
+      bctx.shadowColor = 'transparent';
+      bctx.globalCompositeOperation = 'destination-out';
+      bctx.drawImage(opq, 0, 0);
+      bctx.globalCompositeOperation = 'source-over';
+      return bc;
+    });
+  },
+
+  _scheduleShadowUpdate() {
+    if (!this.canvas || this.state.preview) return;
+    if (this._shadowRaf) return;
+    this._shadowRaf = requestAnimationFrame(() => { this._shadowRaf = 0; this._updateShadowLayer(); });
+  },
+
+  async _updateShadowLayer() {
+    const canvas = this.canvas;
+    if (!canvas || this.state.preview) return;
+    const gen = (this._shadowGen = (this._shadowGen || 0) + 1);
+    const m = this.model?.mockup;
+    const sh = this._previewShadow();
+    // هر تغییری را با ساختِ دوباره جایگزین می‌کنیم (نه ویرایشِ تدریجی)
+    const old = this._shadowImg;
+    this._shadowImg = null;
+    if (old) { try { canvas.remove(old); } catch (e) {} }
+    if (!sh || !m || !m.imgW || !this.layers().length) {
+      canvas.requestRenderAll();
+      return;
+    }
+    const tex = await this._buildShadowTexture();
+    if (gen !== this._shadowGen) return; // به‌روزرسانی تازه‌تری راه افتاده
+    if (!canvas || this.state.preview) return;
+    if (!tex) { canvas.requestRenderAll(); return; }
+    const img = new fabric.Image(tex, {
+      left: (this.offset?.x || 0),
+      top: (this.offset?.y || 0) + sh.offsetY * (this.fitScale || 1),
+      width: m.imgW, height: m.imgH,
+      scaleX: this.fitScale || 1, scaleY: this.fitScale || 1,
+      originX: 'left', originY: 'top',
+      selectable: false, evented: false, hasControls: false, hasBorders: false,
+      excludeFromExport: true, objectCaching: true,
+      name: '__design_shadow__',
+    });
+    canvas.add(img);
+    // دقیقاً بالای موکاپ و زیر لایه‌های کاربر بنشیند (index 1)
+    const i = canvas.getObjects().indexOf(img);
+    if (i > 1) { canvas.remove(img); canvas.insertAt(img, 1); }
+    this._shadowImg = img;
+    this._topMasks(); // ماسک‌ها و راهنماها همیشه بالا
+    canvas.requestRenderAll();
+  },
+
   /* ---------- پیش‌نمایش — همیشه وسط و بزرگ ---------- */
   enterPreview() {
     if (this.state.preview) return Promise.resolve();
     this.canvas.discardActiveObject();
     this._objects = this.canvas.getObjects().slice();
     this._clearKeepBg();
+    this._shadowImg = null; // لایه‌ی سایه همراه بوم پاک شد؛ کامپوزیتِ پیش‌نمایش خودش سایه دارد
     this.state.preview = true;
     window.dispatchEvent(new CustomEvent('editor:changed'));
     return this.generateFullPreviewDataURL().then(dataUrl => {
@@ -683,6 +799,7 @@ const EditorEngine = {
     (this._objects || []).forEach(o => this.canvas.add(o));
     this._objects = null;
     this.renderGuides();
+    this._scheduleShadowUpdate(); // v1.6.21 — برگشتِ سایه‌ی زنده به کنوس ادیت
     this.canvas.requestRenderAll();
     window.dispatchEvent(new CustomEvent('editor:changed'));
   },
@@ -783,6 +900,7 @@ const EditorEngine = {
         ordered.sort((a, b) => a.i - b.i)
           .forEach(({ o }) => { self.canvas.remove(o); self.canvas.add(o); });
         self._topMasks();
+        self._scheduleShadowUpdate(); // v1.6.21 — سایه‌ی زنده برای طرحِ بارگذاری‌شده
         window.dispatchEvent(new CustomEvent('editor:changed'));
       };
       if (!pending) { window.dispatchEvent(new CustomEvent('editor:changed')); return; }
@@ -824,6 +942,7 @@ const EditorEngine = {
   clearDesign() {
     this._clearKeepBg();
     this.renderGuides();
+    this._scheduleShadowUpdate(); // v1.6.21 — طراحی خالی شد → سایه هم حذف شود
     this.onObjectChanged();
   },
 

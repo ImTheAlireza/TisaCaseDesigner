@@ -78,6 +78,37 @@ class Case_Designer_REST {
 			'permission_callback' => array( __CLASS__, 'can_manage' ),
 		) );
 
+		/* v1.6.21 — مدیریت پیشرفته موکاپ‌ها: تغییر نام/قیمت، دوپلیکیت، مرتب‌سازی */
+		register_rest_route( $ns, '/models/(?P<id>\d+)', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => array( __CLASS__, 'update_model' ),
+			'permission_callback' => array( __CLASS__, 'can_manage' ),
+		) );
+
+		register_rest_route( $ns, '/models/(?P<id>\d+)/duplicate', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => array( __CLASS__, 'duplicate_model' ),
+			'permission_callback' => array( __CLASS__, 'can_manage' ),
+		) );
+
+		register_rest_route( $ns, '/models/reorder', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => function ( WP_REST_Request $req ) {
+				$order = $req->get_param( 'order' );
+				if ( ! is_array( $order ) ) {
+					return new WP_Error( 'bad_order', __( 'فهرست ترتیب نامعتبر است', 'case-designer' ) );
+				}
+				foreach ( array_values( $order ) as $i => $mid ) {
+					$mid = (int) $mid;
+					if ( $mid && 'case_model' === get_post_type( $mid ) ) {
+						update_post_meta( $mid, Case_Designer_CPT::META_ORDER, $i );
+					}
+				}
+				return array( 'ok' => true );
+			},
+			'permission_callback' => array( __CLASS__, 'can_manage' ),
+		) );
+
 		/* ---------------- استیکرها ---------------- */
 		register_rest_route( $ns, '/stickers', array(
 			'methods'             => WP_REST_Server::READABLE,
@@ -143,15 +174,17 @@ class Case_Designer_REST {
 		register_rest_route( $ns, '/settings', array(
 			'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => function ( WP_REST_Request $req ) {
-			$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId', 'defaultProductId', 'previewShadow', 'previewShadowOpacity', 'previewShadowOffsetMm', 'previewShadowBlurMm' );
-			$clean   = array();
-			foreach ( $allowed as $key ) {
-				if ( isset( $req[ $key ] ) ) {
-					if ( in_array( $key, array( 'guidesOn', 'restoreDraft', 'previewShadow' ), true ) ) {
-						$clean[ $key ] = (bool) $req[ $key ];
-					} elseif ( in_array( $key, array( 'previewShadowOpacity', 'previewShadowOffsetMm', 'previewShadowBlurMm' ), true ) ) {
-						$clean[ $key ] = max( 0, min( 100, (float) $req[ $key ] ) );
-					} elseif ( 'editorPageId' === $key ) {
+			$allowed = array( 'defaultDpi', 'printColor', 'camColor', 'mainColor', 'guidesNote', 'storeName', 'currency', 'guidesOn', 'restoreDraft', 'editorPageId', 'defaultProductId', 'defaultPrice', 'previewShadow', 'previewShadowOpacity', 'previewShadowOffsetMm', 'previewShadowBlurMm' );
+				$clean   = array();
+				foreach ( $allowed as $key ) {
+					if ( isset( $req[ $key ] ) ) {
+						if ( in_array( $key, array( 'guidesOn', 'restoreDraft', 'previewShadow' ), true ) ) {
+							$clean[ $key ] = (bool) $req[ $key ];
+						} elseif ( 'defaultPrice' === $key ) {
+							$clean[ $key ] = max( 0, (float) $req[ $key ] );
+						} elseif ( in_array( $key, array( 'previewShadowOpacity', 'previewShadowOffsetMm', 'previewShadowBlurMm' ), true ) ) {
+							$clean[ $key ] = max( 0, min( 100, (float) $req[ $key ] ) );
+						} elseif ( 'editorPageId' === $key ) {
 							$clean[ $key ] = (int) $req[ $key ];
 							update_option( 'case_designer_editor_page', (int) $req[ $key ] );
 						} elseif ( 'defaultProductId' === $key ) {
@@ -243,7 +276,22 @@ class Case_Designer_REST {
 		) );
 	}
 
-	/* ---------------- ساخت مدل جدید ---------------- */
+	/* ---------------- قیمت پیش‌فرض از تنظیمات (v1.6.21: ۶۶۸) ---------------- */
+	public static function default_price() {
+		$settings = get_option( 'case_designer_settings', array() );
+		$settings = is_array( $settings ) ? $settings : array();
+		if ( isset( $settings['defaultPrice'] ) && '' !== $settings['defaultPrice'] ) {
+			return (float) $settings['defaultPrice'];
+		}
+		return 668;
+	}
+
+	/* ---------------- ساخت مدل جدید ----------------
+	 * v1.6.21:
+	 *  - اگر قیمت نفرستاده شود، «قیمت پیش‌فرض» از تنظیمات (پیش‌فرض ۶۶۸) می‌آید
+	 *  - اگر محصول نفرستاده شود، «محصول پیش‌فرض» صفحه‌ی تنظیمات پیروی می‌شود
+	 *    (فیلد محصول از مودال «افزودن موکاپ» حذف شده است)
+	 *  - ترتیب نمایش: آخر فهرست */
 	public static function create_model( WP_REST_Request $req ) {
 		$p  = $req->get_json_params();
 		$id = wp_insert_post( array(
@@ -255,8 +303,20 @@ class Case_Designer_REST {
 			return $id;
 		}
 		update_post_meta( $id, Case_Designer_CPT::META_BRAND, sanitize_text_field( $p['brandId'] ) );
-		update_post_meta( $id, Case_Designer_CPT::META_PRICE, (float) $p['price'] );
-		update_post_meta( $id, Case_Designer_CPT::META_PRODUCT, (int) ( $p['productId'] ?? 0 ) );
+		$price = isset( $p['price'] ) && '' !== $p['price'] ? (float) $p['price'] : self::default_price();
+		update_post_meta( $id, Case_Designer_CPT::META_PRICE, $price );
+		$product_id = (int) ( $p['productId'] ?? 0 );
+		if ( ! $product_id ) {
+			$product_id = (int) get_option( 'case_designer_default_product', 0 );
+		}
+		update_post_meta( $id, Case_Designer_CPT::META_PRODUCT, $product_id );
+		$max_order = 0;
+		foreach ( Case_Designer_CPT::all_models() as $x ) {
+			if ( isset( $x['order'] ) && (int) $x['order'] > $max_order ) {
+				$max_order = (int) $x['order'];
+			}
+		}
+		update_post_meta( $id, Case_Designer_CPT::META_ORDER, $max_order + 1 );
 
 		// کادرهای پیش‌فرض ارسالی از سمت پنل
 		$mockup = array();
@@ -280,6 +340,60 @@ class Case_Designer_REST {
 				Case_Designer_CPT::save_mockup( $id, $m );
 			}
 		}
+		return Case_Designer_CPT::all_models();
+	}
+
+	/* ---------------- v1.6.21: تغییر نام/قیمت یک مدل ---------------- */
+	public static function update_model( WP_REST_Request $req ) {
+		$id = (int) $req['id'];
+		if ( 'case_model' !== get_post_type( $id ) ) {
+			return new WP_Error( 'not_found', __( 'مدل پیدا نشد', 'case-designer' ) );
+		}
+		$p = $req->get_json_params();
+		if ( isset( $p['name'] ) ) {
+			$name = sanitize_text_field( $p['name'] );
+			if ( '' !== $name ) {
+				wp_update_post( array( 'ID' => $id, 'post_title' => $name ) );
+			}
+		}
+		if ( isset( $p['price'] ) && '' !== $p['price'] ) {
+			update_post_meta( $id, Case_Designer_CPT::META_PRICE, max( 0, (float) $p['price'] ) );
+		}
+		return Case_Designer_CPT::all_models();
+	}
+
+	/* ---------------- v1.6.21: دوپلیکیت یک مدل (همان تصویر و کادرها) ---------------- */
+	public static function duplicate_model( WP_REST_Request $req ) {
+		$id  = (int) $req['id'];
+		$src = get_post( $id );
+		if ( ! $src || 'case_model' !== $src->post_type ) {
+			return new WP_Error( 'not_found', __( 'مدل پیدا نشد', 'case-designer' ) );
+		}
+		$new_id = wp_insert_post( array(
+			'post_type'   => 'case_model',
+			'post_status' => 'publish',
+			'post_title'  => $src->post_title . ' (کپی)',
+		) );
+		if ( is_wp_error( $new_id ) ) {
+			return $new_id;
+		}
+		foreach ( array( Case_Designer_CPT::META_BRAND, Case_Designer_CPT::META_PRICE, Case_Designer_CPT::META_PRODUCT, Case_Designer_CPT::META_MOCKUP ) as $meta ) {
+			$val = get_post_meta( $id, $meta, true );
+			if ( '' !== $val && null !== $val ) {
+				update_post_meta( $new_id, $meta, $val );
+			}
+		}
+		$thumb = get_post_thumbnail_id( $id );
+		if ( $thumb ) {
+			set_post_thumbnail( $new_id, $thumb );
+		}
+		$max_order = 0;
+		foreach ( Case_Designer_CPT::all_models() as $x ) {
+			if ( isset( $x['order'] ) && (int) $x['order'] > $max_order ) {
+				$max_order = (int) $x['order'];
+			}
+		}
+		update_post_meta( $new_id, Case_Designer_CPT::META_ORDER, $max_order + 1 );
 		return Case_Designer_CPT::all_models();
 	}
 
@@ -352,16 +466,20 @@ class Case_Designer_REST {
 					continue;
 				}
 				$out[] = array(
-					'id'        => $order->get_id(),
-					'code'      => (string) $order->get_order_number(),
-					'date'      => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : '',
-					'modelName' => $item->get_name(),
-					'qty'       => (int) $item->get_quantity(),
-					'price'     => (float) $item->get_total(),
-					'status'    => str_replace( 'wc-', '', $order->get_status() ),
-					'thumb'     => (string) $item->get_meta( Case_Designer_Woo::META_THUMB ),
-					'printFile' => (string) $item->get_meta( Case_Designer_Woo::META_PRINT_FILE ),
-					'printDpi'  => 300,
+					'id'          => $order->get_id(),
+					'code'        => (string) $order->get_order_number(),
+					'date'        => $order->get_date_created() ? $order->get_date_created()->date( 'c' ) : '',
+					'productName' => $item->get_name(),
+					/* v1.6.21: مدلِ موکاپی که طرح با آن طراحی شده (از متادیتای آیتم) */
+					'modelName'   => (string) $item->get_meta( Case_Designer_Woo::META_MODEL_NAME ),
+					'qty'         => (int) $item->get_quantity(),
+					'price'       => (float) $item->get_total(),
+					'status'      => str_replace( 'wc-', '', $order->get_status() ),
+					'thumb'       => (string) $item->get_meta( Case_Designer_Woo::META_THUMB ),
+					'printFile'   => (string) $item->get_meta( Case_Designer_Woo::META_PRINT_FILE ),
+					'printDpi'    => 300,
+					/* لینک ویرایش سفارش در ادمین ووکامرس */
+					'editUrl'     => admin_url( 'post.php?post=' . $order->get_id() . '&action=edit' ),
 				);
 			}
 		}
